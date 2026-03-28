@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎰 Spielbank</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #f0d080;
+    --gold-dark: #8a6820;
+    --green: #1a3a2a;
+    --green-mid: #204030;
+    --green-dark: #0e2018;
+    --felt: #143222;
+    --cream: #f5e6c8;
+    --red: #c0392b;
+    --white: #fdf6e3;
+    --shadow: rgba(0,0,0,0.6);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--green-dark);
+    color: var(--cream);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.15) 0%, transparent 60%),
+      repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.01) 20px, rgba(255,255,255,0.01) 21px);
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    padding: 30px 20px 20px;
+    border-bottom: 1px solid var(--gold-dark);
+    background: linear-gradient(180deg, #0a1810 0%, transparent 100%);
+    position: relative;
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(201,168,76,0.5), 2px 2px 0 var(--gold-dark);
+    letter-spacing: 4px;
+  }
+  header p { color: rgba(245,230,200,0.5); font-size: 0.75rem; letter-spacing: 3px; margin-top: 6px; }
+  .device-badge {
+    position: absolute; top: 15px; right: 15px;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid var(--gold-dark);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.65rem;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+
+  /* MAIN CONTAINER */
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+  /* SCREENS */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: linear-gradient(135deg, var(--green-mid) 0%, var(--felt) 100%);
+    border: 1px solid var(--gold-dark);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .card h2 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+  }
+  .card h3 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold-light);
+    font-size: 1rem;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+
+  /* INPUTS */
+  input, select {
+    width: 100%;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--gold-dark);
+    border-radius: 6px;
+    color: var(--cream);
+    padding: 12px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus { border-color: var(--gold); }
+  input::placeholder { color: rgba(245,230,200,0.3); }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    color: var(--green-dark);
+    font-weight: 700;
+  }
+  .btn-gold:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--gold-dark);
+    color: var(--gold);
+  }
+  .btn-outline:hover { border-color: var(--gold); background: rgba(201,168,76,0.1); }
+  .btn-red {
+    background: linear-gradient(135deg, #7a1a14, var(--red));
+    color: white;
+  }
+  .btn-red:hover { filter: brightness(1.15); }
+  .btn-green {
+    background: linear-gradient(135deg, #0d5c34, #1a9c58);
+    color: white;
+  }
+  .btn-green:hover { filter: brightness(1.15); }
+  .btn-full { width: 100%; text-align: center; margin-bottom: 10px; }
+  .btn-sm { padding: 8px 14px; font-size: 0.75rem; }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* BALANCE DISPLAY */
+  .balance-display {
+    text-align: center;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .balance-amount {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(201,168,76,0.4);
+    line-height: 1;
+  }
+  .balance-label {
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    color: rgba(245,230,200,0.4);
+    margin-top: 6px;
+    text-transform: uppercase;
+  }
+  .user-name-display {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--cream);
+    margin-bottom: 4px;
+  }
+
+  /* ALERT/STATUS */
+  .status-msg {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+    display: none;
+    letter-spacing: 0.5px;
+  }
+  .status-msg.show { display: block; }
+  .status-ok { background: rgba(26,156,88,0.2); border: 1px solid #1a9c58; color: #6dffb0; }
+  .status-err { background: rgba(192,57,43,0.2); border: 1px solid var(--red); color: #ff8080; }
+
+  /* TRANSACTION LIST */
+  .tx-list { max-height: 200px; overflow-y: auto; }
+  .tx-list::-webkit-scrollbar { width: 4px; }
+  .tx-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+  .tx-list::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 2px; }
+  .tx-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(201,168,76,0.1);
+    font-size: 0.78rem;
+  }
+  .tx-item:last-child { border-bottom: none; }
+  .tx-plus { color: #6dffb0; }
+  .tx-minus { color: #ff8080; }
+  .tx-time { color: rgba(245,230,200,0.3); font-size: 0.68rem; }
+
+  /* CALCULATOR */
+  .calc-display {
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--gold-dark);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: var(--gold-light);
+    text-align: right;
+    min-height: 60px;
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+    word-break: break-all;
+  }
+  .calc-note-display {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+    color: rgba(245,230,200,0.6);
+    min-height: 32px;
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+  .calc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .calc-btn {
+    padding: 14px 0;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.15s;
+    background: rgba(255,255,255,0.06);
+    color: var(--cream);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .calc-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.03); }
+  .calc-btn:active { transform: scale(0.97); }
+  .calc-btn.op { background: rgba(201,168,76,0.15); color: var(--gold); border-color: rgba(201,168,76,0.2); }
+  .calc-btn.eq { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--green-dark); font-weight: 700; border-color: var(--gold); }
+  .calc-btn.clear { background: rgba(192,57,43,0.25); color: #ff8080; border-color: rgba(192,57,43,0.3); }
+  .calc-btn.wide { grid-column: span 2; }
+
+  /* CONNECTIONS */
+  .connected-device {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: rgba(26,156,88,0.1);
+    border: 1px solid rgba(26,156,88,0.3);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+  }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
+  .dot-green { background: #1a9c58; box-shadow: 0 0 6px #1a9c58; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--gold-dark);
+    border-radius: 20px;
+    background: transparent;
+    color: rgba(245,230,200,0.5);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    color: var(--green-dark);
+    font-weight: 700;
+    border-color: var(--gold);
+  }
+
+  /* PAYMENT REQUEST POPUP */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: linear-gradient(135deg, var(--green-mid), var(--felt));
+    border: 1px solid var(--gold);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 380px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    position: relative;
+  }
+  .modal h2 { font-family: 'Playfair Display', serif; color: var(--gold); margin-bottom: 16px; }
+  .modal-amount { font-family: 'Playfair Display', serif; font-size: 3rem; color: var(--gold); text-align: center; margin: 16px 0; }
+  .modal-close {
+    position: absolute; top: 12px; right: 16px;
+    background: none; border: none;
+    color: var(--cream); cursor: pointer; font-size: 1.4rem;
+  }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid rgba(201,168,76,0.15); margin: 20px 0; }
+
+  /* CHIP DISPLAY */
+  .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'DM Mono', monospace;
+  }
+  .chip:hover { transform: translateY(-2px); }
+  .chip-gold { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.1); }
+  .chip-gold:hover { background: rgba(201,168,76,0.25); }
+
+  /* NOTIFICATION BANNER */
+  #notification-bar {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    color: var(--green-dark);
+    text-align: center;
+    padding: 12px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 700;
+    font-size: 0.85rem;
+    z-index: 200;
+    transform: translateY(-100%);
+    transition: transform 0.4s ease;
+    letter-spacing: 1px;
+  }
+  #notification-bar.show { transform: translateY(0); }
+
+  .label { font-size: 0.7rem; letter-spacing: 2px; color: rgba(245,230,200,0.4); text-transform: uppercase; margin-bottom: 6px; }
+  .separator { text-align: center; color: rgba(245,230,200,0.2); margin: 14px 0; font-size: 0.7rem; letter-spacing: 2px; }
+
+  /* ITEM LIST in CALC */
+  .item-list { margin-top: 10px; }
+  .item-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(201,168,76,0.08);
+    font-size: 0.78rem;
+  }
+  .item-row button { background: none; border: none; color: #ff8080; cursor: pointer; font-size: 0.9rem; padding: 0 4px; }
+
+  select option { background: #1a3a2a; }
+</style>
+</head>
+<body>
+
+<div id="notification-bar">🔔 Nachricht</div>
+
+<!-- SCREEN: LOGIN / REGISTER -->
+<div id="screen-login" class="screen active">
+  <header>
+    <h1>🎰 SPIELBANK</h1>
+    <p>KASINO · KASSE · KONTEN</p>
+  </header>
+  <div class="container">
+    <div class="card" style="max-width:420px;margin:30px auto;">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchAuthTab('register')">Konto erstellen</button>
+        <button class="tab-btn" onclick="switchAuthTab('login')">Einloggen</button>
+      </div>
+
+      <div id="tab-register">
+        <h3>Neues Konto</h3>
+        <div class="label">Name</div>
+        <input type="text" id="reg-name" placeholder="Dein Name..." />
+        <div class="label">Passwort (zum Verbinden)</div>
+        <input type="password" id="reg-pass" placeholder="Passwort..." />
+        <div class="label">Startguthaben (€)</div>
+        <div class="chip-row">
+          <span class="chip chip-gold" onclick="setStartGeld(50)">50 €</span>
+          <span class="chip chip-gold" onclick="setStartGeld(100)">100 €</span>
+          <span class="chip chip-gold" onclick="setStartGeld(200)">200 €</span>
+          <span class="chip chip-gold" onclick="setStartGeld(500)">500 €</span>
+        </div>
+        <input type="number" id="reg-geld" placeholder="Oder eingeben..." min="0" />
+        <div id="reg-status" class="status-msg"></div>
+        <button class="btn btn-gold btn-full" onclick="registerAccount()">Konto erstellen</button>
+      </div>
+
+      <div id="tab-login" style="display:none">
+        <h3>Einloggen</h3>
+        <div class="label">Name</div>
+        <input type="text" id="login-name" placeholder="Dein Name..." />
+        <div class="label">Passwort</div>
+        <input type="password" id="login-pass" placeholder="Passwort..." />
+        <div id="login-status" class="status-msg"></div>
+        <button class="btn btn-gold btn-full" onclick="loginAccount()">Einloggen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN: DASHBOARD -->
+<div id="screen-dashboard" class="screen">
+  <header>
+    <h1>🎰 SPIELBANK</h1>
+    <p>KASINO · KASSE · KONTEN</p>
+    <div class="device-badge" id="device-badge">GERÄT A</div>
+  </header>
+  <div class="container">
+
+    <!-- BALANCE -->
+    <div class="card">
+      <div class="balance-display">
+        <div class="user-name-display" id="dash-name">Spieler</div>
+        <div class="balance-amount" id="dash-balance">0,00 €</div>
+        <div class="balance-label">Aktuelles Guthaben</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="showTab('verbinden')">🔗 Verbinden</button>
+        <button class="btn btn-outline btn-sm" onclick="showTab('transfer')">💸 Geld senden</button>
+        <button class="btn btn-outline btn-sm" onclick="showTab('rechner')">🧮 Rechner</button>
+        <button class="btn btn-red btn-sm" onclick="logout()">Abmelden</button>
+      </div>
+    </div>
+
+    <!-- TABS NAV -->
+    <div class="tabs">
+      <button class="tab-btn active" id="nav-verbinden" onclick="showTab('verbinden')">🔗 Verbinden</button>
+      <button class="tab-btn" id="nav-transfer" onclick="showTab('transfer')">💸 Transfer</button>
+      <button class="tab-btn" id="nav-rechner" onclick="showTab('rechner')">🧮 Rechner</button>
+      <button class="tab-btn" id="nav-verlauf" onclick="showTab('verlauf')">📜 Verlauf</button>
+    </div>
+
+    <!-- TAB: VERBINDEN -->
+    <div id="tab-verbinden" class="card">
+      <h2>🔗 Geräte verbinden</h2>
+      <p style="font-size:0.8rem;color:rgba(245,230,200,0.5);margin-bottom:16px;">
+        Verbinde dich mit einem anderen Spieler-Konto indem du dessen Passwort eingibst. So kannst du Geld senden.
+      </p>
+      <div class="label">Passwort des anderen Kontos</div>
+      <input type="password" id="connect-pass" placeholder="Passwort eingeben..." />
+      <div id="connect-status" class="status-msg"></div>
+      <button class="btn btn-gold btn-full" onclick="connectToAccount()">Verbinden</button>
+
+      <hr class="divider">
+      <h3>Verbundene Konten</h3>
+      <div id="connected-list">
+        <p style="font-size:0.78rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p>
+      </div>
+      <hr class="divider">
+      <h3>Dein Verbindungspasswort</h3>
+      <p style="font-size:0.78rem;color:rgba(245,230,200,0.5);margin-bottom:8px;">Teile dieses Passwort mit anderen, damit sie sich mit dir verbinden können:</p>
+      <div style="background:rgba(0,0,0,0.4);border:1px solid var(--gold-dark);border-radius:6px;padding:12px;font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--gold);text-align:center;letter-spacing:4px;" id="my-password-display">···</div>
+    </div>
+
+    <!-- TAB: TRANSFER -->
+    <div id="tab-transfer" class="card" style="display:none">
+      <h2>💸 Geld senden</h2>
+      <div class="label">Empfänger</div>
+      <select id="transfer-to">
+        <option value="">— Verbundenes Konto wählen —</option>
+      </select>
+      <div class="label">Betrag (€)</div>
+      <div class="chip-row">
+        <span class="chip chip-gold" onclick="setTransferBetrag(5)">5 €</span>
+        <span class="chip chip-gold" onclick="setTransferBetrag(10)">10 €</span>
+        <span class="chip chip-gold" onclick="setTransferBetrag(20)">20 €</span>
+        <span class="chip chip-gold" onclick="setTransferBetrag(50)">50 €</span>
+        <span class="chip chip-gold" onclick="setTransferBetrag(100)">100 €</span>
+      </div>
+      <input type="number" id="transfer-amount" placeholder="Betrag..." min="0.01" step="0.01" />
+      <div class="label">Grund (optional)</div>
+      <input type="text" id="transfer-note" placeholder="z.B. Bier, Einsatz..." />
+      <div id="transfer-status" class="status-msg"></div>
+      <button class="btn btn-green btn-full" onclick="sendMoney()">💸 Senden</button>
+    </div>
+
+    <!-- TAB: RECHNER -->
+    <div id="tab-rechner" class="card" style="display:none">
+      <h2>🧮 Kassenrechner</h2>
+      <p style="font-size:0.78rem;color:rgba(245,230,200,0.4);margin-bottom:14px;">Berechne den Betrag für einen Kauf. Der andere Spieler kann dann bezahlen.</p>
+
+      <div class="calc-display" id="calc-display">0</div>
+      <div class="calc-note-display" id="calc-note-display">Artikel hinzufügen...</div>
+
+      <!-- ARTIKEL EINGABE -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input type="text" id="artikel-name" placeholder="Artikel..." style="margin:0;flex:2;" />
+        <input type="number" id="artikel-preis" placeholder="€" style="margin:0;flex:1;" min="0" step="0.01" />
+        <button class="btn btn-gold btn-sm" onclick="addArtikel()">+</button>
+      </div>
+
+      <div class="item-list" id="item-list"></div>
+
+      <hr class="divider" style="margin:10px 0;">
+      <div class="calc-grid" id="calc-grid">
+        <button class="calc-btn clear wide" onclick="clearCalc()">C</button>
+        <button class="calc-btn op" onclick="calcInput('/')">÷</button>
+        <button class="calc-btn op" onclick="calcInput('*')">×</button>
+        <button class="calc-btn" onclick="calcInput('7')">7</button>
+        <button class="calc-btn" onclick="calcInput('8')">8</button>
+        <button class="calc-btn" onclick="calcInput('9')">9</button>
+        <button class="calc-btn op" onclick="calcInput('-')">−</button>
+        <button class="calc-btn" onclick="calcInput('4')">4</button>
+        <button class="calc-btn" onclick="calcInput('5')">5</button>
+        <button class="calc-btn" onclick="calcInput('6')">6</button>
+        <button class="calc-btn op" onclick="calcInput('+')">+</button>
+        <button class="calc-btn" onclick="calcInput('1')">1</button>
+        <button class="calc-btn" onclick="calcInput('2')">2</button>
+        <button class="calc-btn" onclick="calcInput('3')">3</button>
+        <button class="calc-btn eq" style="grid-row:span 2;" onclick="calcEquals()">=</button>
+        <button class="calc-btn wide" onclick="calcInput('0')">0</button>
+        <button class="calc-btn" onclick="calcInput('.')">.</button>
+      </div>
+
+      <hr class="divider">
+      <h3>Zahlungsanfrage senden</h3>
+      <p style="font-size:0.78rem;color:rgba(245,230,200,0.4);margin-bottom:10px;">Sende den berechneten Betrag als Zahlungsanfrage an einen verbundenen Spieler.</p>
+      <select id="payment-req-to">
+        <option value="">— Konto wählen —</option>
+      </select>
+      <div id="payment-req-status" class="status-msg"></div>
+      <button class="btn btn-gold btn-full" onclick="sendPaymentRequest()">🧾 Zahlungsanfrage senden</button>
+    </div>
+
+    <!-- TAB: VERLAUF -->
+    <div id="tab-verlauf" class="card" style="display:none">
+      <h2>📜 Transaktionsverlauf</h2>
+      <div class="tx-list" id="tx-list">
+        <p style="font-size:0.78rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: PAYMENT REQUEST -->
+<div class="modal-overlay" id="payment-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closePaymentModal()">✕</button>
+    <h2>🧾 Zahlungsanfrage</h2>
+    <p style="font-size:0.8rem;color:rgba(245,230,200,0.5);" id="modal-from-text">Von: Spieler</p>
+    <div class="modal-amount" id="modal-amount">0,00 €</div>
+    <div style="font-size:0.75rem;color:rgba(245,230,200,0.5);text-align:center;margin-bottom:16px;" id="modal-items-text"></div>
+    <div id="modal-status" class="status-msg"></div>
+    <button class="btn btn-green btn-full" onclick="acceptPaymentRequest()">✅ Bezahlen</button>
+    <button class="btn btn-red btn-full" onclick="declinePaymentRequest()">❌ Ablehnen</button>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// STORAGE HELPERS — simulated multi-device via localStorage
+// =====================================================================
+const DB_KEY = 'spielbank_db';
+let currentUser = null;
+let pollingInterval = null;
+let pendingPaymentReqId = null;
+
+function getDB() {
+  try { return JSON.parse(localStorage.getItem(DB_KEY)) || { accounts: {}, transactions: [], paymentRequests: [] }; }
+  catch { return { accounts: {}, transactions: [], paymentRequests: [] }; }
+}
+function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+
+function fmt(amount) {
+  return amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+
+function showNotification(msg) {
+  const bar = document.getElementById('notification-bar');
+  bar.textContent = msg;
+  bar.classList.add('show');
+  setTimeout(() => bar.classList.remove('show'), 4000);
+}
+
+function showStatus(id, msg, ok) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'status-msg show ' + (ok ? 'status-ok' : 'status-err');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function genId() { return Math.random().toString(36).substr(2,9); }
+function getTime() { return new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'}); }
+function getDate() { return new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit', hour:'2-digit',minute:'2-digit'}); }
+
+// =====================================================================
+// AUTH
+// =====================================================================
+function switchAuthTab(t) {
+  document.getElementById('tab-register').style.display = t==='register' ? 'block' : 'none';
+  document.getElementById('tab-login').style.display    = t==='login' ? 'block' : 'none';
+  document.querySelectorAll('#screen-login .tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0 && t==='register') || (i===1 && t==='login'));
+  });
+}
+
+function setStartGeld(v) { document.getElementById('reg-geld').value = v; }
+
+function registerAccount() {
+  const name = document.getElementById('reg-name').value.trim();
+  const pass = document.getElementById('reg-pass').value.trim();
+  const geld = parseFloat(document.getElementById('reg-geld').value) || 0;
+  if (!name) return showStatus('reg-status','Name eingeben!', false);
+  if (!pass || pass.length < 3) return showStatus('reg-status','Passwort mind. 3 Zeichen!', false);
+  const db = getDB();
+  if (db.accounts[name]) return showStatus('reg-status','Name bereits vergeben!', false);
+  // check pass not already taken
+  const passTaken = Object.values(db.accounts).some(a => a.password === pass);
+  if (passTaken) return showStatus('reg-status','Passwort bereits von jemand anderem verwendet!', false);
+  db.accounts[name] = { name, password: pass, balance: geld, connections: [], createdAt: Date.now() };
+  saveDB(db);
+  showStatus('reg-status','Konto erstellt! Bitte einloggen.', true);
+  setTimeout(() => switchAuthTab('login'), 1500);
+  document.getElementById('login-name').value = name;
+}
+
+function loginAccount() {
+  const name = document.getElementById('login-name').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+  if (!name || !pass) return showStatus('login-status','Felder ausfüllen!', false);
+  const db = getDB();
+  const acc = db.accounts[name];
+  if (!acc) return showStatus('login-status','Konto nicht gefunden!', false);
+  if (acc.password !== pass) return showStatus('login-status','Falsches Passwort!', false);
+  currentUser = name;
+  showDashboard();
+}
+
+function logout() {
+  currentUser = null;
+  clearInterval(pollingInterval);
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('screen-dashboard').classList.remove('active');
+  showTab('verbinden');
+}
+
+// =====================================================================
+// DASHBOARD
+// =====================================================================
+function showDashboard() {
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-dashboard').classList.add('active');
+  updateDashboard();
+  startPolling();
+}
+
+function updateDashboard() {
+  if (!currentUser) return;
+  const db = getDB();
+  const acc = db.accounts[currentUser];
+  if (!acc) return;
+  document.getElementById('dash-name').textContent = acc.name;
+  document.getElementById('dash-balance').textContent = fmt(acc.balance);
+  document.getElementById('my-password-display').textContent = acc.password;
+  document.getElementById('device-badge').textContent = acc.name.substring(0,8).toUpperCase();
+  renderConnections(acc, db);
+  renderTxList(db);
+  updateTransferSelects(acc);
+}
+
+function renderConnections(acc, db) {
+  const list = document.getElementById('connected-list');
+  if (!acc.connections || acc.connections.length === 0) {
+    list.innerHTML = '<p style="font-size:0.78rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p>';
+    return;
+  }
+  list.innerHTML = acc.connections.map(name => {
+    const other = db.accounts[name];
+    if (!other) return '';
+    return `<div class="connected-device">
+      <span><span class="dot dot-green"></span>${name}</span>
+      <span style="color:var(--gold);">${fmt(other.balance)}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTxList(db) {
+  const list = document.getElementById('tx-list');
+  const txs = (db.transactions || []).filter(t => t.from === currentUser || t.to === currentUser).reverse();
+  if (txs.length === 0) {
+    list.innerHTML = '<p style="font-size:0.78rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p>';
+    return;
+  }
+  list.innerHTML = txs.slice(0,30).map(t => {
+    const out = t.from === currentUser;
+    const sign = out ? '-' : '+';
+    const cls = out ? 'tx-minus' : 'tx-plus';
+    const who = out ? `→ ${t.to}` : `← ${t.from}`;
+    return `<div class="tx-item">
+      <span>${who}${t.note ? ' · ' + t.note : ''}</span>
+      <span>
+        <span class="${cls}">${sign}${fmt(t.amount)}</span>
+        <span class="tx-time" style="margin-left:8px;">${t.time}</span>
+      </span>
+    </div>`;
+  }).join('');
+}
+
+function updateTransferSelects(acc) {
+  const conns = acc.connections || [];
+  const opts = conns.length === 0
+    ? '<option value="">— Keine Verbindungen —</option>'
+    : '<option value="">— Konto wählen —</option>' + conns.map(n => `<option value="${n}">${n}</option>`).join('');
+  document.getElementById('transfer-to').innerHTML = opts;
+  document.getElementById('payment-req-to').innerHTML = opts.replace('— Konto wählen —','— Konto wählen —');
+}
+
+function showTab(name) {
+  ['verbinden','transfer','rechner','verlauf'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===name ? 'block' : 'none';
+    const btn = document.getElementById('nav-'+t);
+    if (btn) btn.classList.toggle('active', t===name);
+  });
+  if (name==='verlauf' || name==='transfer' || name==='verbinden') updateDashboard();
+}
+
+// =====================================================================
+// CONNECT
+// =====================================================================
+function connectToAccount() {
+  const pass = document.getElementById('connect-pass').value.trim();
+  if (!pass) return showStatus('connect-status','Passwort eingeben!', false);
+  const db = getDB();
+  const other = Object.values(db.accounts).find(a => a.password === pass);
+  if (!other) return showStatus('connect-status','Kein Konto mit diesem Passwort!', false);
+  if (other.name === currentUser) return showStatus('connect-status','Das ist dein eigenes Konto!', false);
+  const myAcc = db.accounts[currentUser];
+  if ((myAcc.connections || []).includes(other.name)) return showStatus('connect-status','Bereits verbunden!', false);
+  myAcc.connections = myAcc.connections || [];
+  myAcc.connections.push(other.name);
+  // mutual
+  other.connections = other.connections || [];
+  if (!other.connections.includes(currentUser)) other.connections.push(currentUser);
+  saveDB(db);
+  showStatus('connect-status','✅ Verbunden mit ' + other.name + '!', true);
+  document.getElementById('connect-pass').value = '';
+  updateDashboard();
+}
+
+function disconnectFrom(name) {
+  const db = getDB();
+  const myAcc = db.accounts[currentUser];
+  myAcc.connections = (myAcc.connections||[]).filter(n => n !== name);
+  saveDB(db);
+  updateDashboard();
+}
+
+// =====================================================================
+// TRANSFER
+// =====================================================================
+function setTransferBetrag(v) { document.getElementById('transfer-amount').value = v; }
+
+function sendMoney() {
+  const to = document.getElementById('transfer-to').value;
+  const amount = parseFloat(document.getElementById('transfer-amount').value);
+  const note = document.getElementById('transfer-note').value.trim();
+  if (!to) return showStatus('transfer-status','Empfänger wählen!', false);
+  if (!amount || amount <= 0) return showStatus('transfer-status','Gültigen Betrag eingeben!', false);
+  const db = getDB();
+  const from = db.accounts[currentUser];
+  const toAcc = db.accounts[to];
+  if (!toAcc) return showStatus('transfer-status','Konto nicht gefunden!', false);
+  if (from.balance < amount) return showStatus('transfer-status','Nicht genug Guthaben!', false);
+  from.balance -= amount;
+  toAcc.balance += amount;
+  db.transactions = db.transactions || [];
+  db.transactions.push({ id: genId(), from: currentUser, to, amount, note, time: getDate() });
+  saveDB(db);
+  showStatus('transfer-status',`✅ ${fmt(amount)} an ${to} gesendet!`, true);
+  updateDashboard();
+  document.getElementById('transfer-amount').value = '';
+  document.getElementById('transfer-note').value = '';
+  showNotification(`💸 ${fmt(amount)} an ${to} gesendet`);
+}
+
+// =====================================================================
+// CALCULATOR
+// =====================================================================
+let calcExpr = '0';
+let calcItems = [];
+let calcTotal = 0;
+
+function calcInput(val) {
+  if (calcExpr === '0' && val !== '.') calcExpr = val;
+  else calcExpr += val;
+  document.getElementById('calc-display').textContent = calcExpr;
+}
+
+function calcEquals() {
+  try {
+    let result = Function('"use strict";return (' + calcExpr + ')')();
+    result = Math.round(result * 100) / 100;
+    calcExpr = String(result);
+    document.getElementById('calc-display').textContent = calcExpr;
+    calcTotal = result;
+    updateCalcNote();
+  } catch { document.getElementById('calc-display').textContent = 'Fehler'; calcExpr = '0'; }
+}
+
+function clearCalc() {
+  calcExpr = '0';
+  document.getElementById('calc-display').textContent = '0';
+}
+
+function addArtikel() {
+  const name = document.getElementById('artikel-name').value.trim();
+  const preis = parseFloat(document.getElementById('artikel-preis').value);
+  if (!name || !preis || preis <= 0) return;
+  calcItems.push({ name, preis });
+  calcTotal = calcItems.reduce((s, i) => s + i.preis, 0);
+  calcTotal = Math.round(calcTotal*100)/100;
+  calcExpr = String(calcTotal);
+  document.getElementById('calc-display').textContent = fmt(calcTotal);
+  document.getElementById('artikel-name').value = '';
+  document.getElementById('artikel-preis').value = '';
+  renderItemList();
+  updateCalcNote();
+}
+
+function renderItemList() {
+  const list = document.getElementById('item-list');
+  if (calcItems.length === 0) { list.innerHTML = ''; return; }
+  list.innerHTML = calcItems.map((it, i) => `
+    <div class="item-row">
+      <span>${it.name}</span>
+      <span style="display:flex;align-items:center;gap:8px;">
+        <span style="color:var(--gold);">${fmt(it.preis)}</span>
+        <button onclick="removeItem(${i})">✕</button>
+      </span>
+    </div>`).join('') +
+  `<div class="item-row" style="font-weight:700;">
+    <span>GESAMT</span>
+    <span style="color:var(--gold);">${fmt(calcTotal)}</span>
+  </div>`;
+}
+
+function removeItem(i) {
+  calcItems.splice(i, 1);
+  calcTotal = calcItems.reduce((s, it) => s + it.preis, 0);
+  calcTotal = Math.round(calcTotal*100)/100;
+  calcExpr = String(calcTotal);
+  document.getElementById('calc-display').textContent = calcTotal > 0 ? fmt(calcTotal) : '0';
+  renderItemList();
+  updateCalcNote();
+}
+
+function updateCalcNote() {
+  const el = document.getElementById('calc-note-display');
+  if (calcItems.length > 0) {
+    el.textContent = calcItems.map(i => i.name).join(', ') + ' = ' + fmt(calcTotal);
+  } else {
+    el.textContent = 'Artikel hinzufügen...';
+  }
+}
+
+// =====================================================================
+// PAYMENT REQUESTS
+// =====================================================================
+function sendPaymentRequest() {
+  const to = document.getElementById('payment-req-to').value;
+  if (!to) return showStatus('payment-req-status','Empfänger wählen!', false);
+  const amount = calcTotal || parseFloat(calcExpr) || 0;
+  if (!amount || amount <= 0) return showStatus('payment-req-status','Betrag berechnen!', false);
+  const db = getDB();
+  db.paymentRequests = db.paymentRequests || [];
+  db.paymentRequests.push({
+    id: genId(),
+    from: currentUser,
+    to,
+    amount,
+    items: [...calcItems],
+    time: getDate(),
+    status: 'pending'
+  });
+  saveDB(db);
+  showStatus('payment-req-status',`✅ Anfrage über ${fmt(amount)} an ${to} gesendet!`, true);
+  showNotification(`🧾 Zahlungsanfrage über ${fmt(amount)} an ${to}`);
+}
+
+function checkPaymentRequests() {
+  if (!currentUser) return;
+  const db = getDB();
+  const pending = (db.paymentRequests || []).find(r => r.to === currentUser && r.status === 'pending');
+  if (pending) {
+    pendingPaymentReqId = pending.id;
+    document.getElementById('modal-from-text').textContent = `Von: ${pending.from}`;
+    document.getElementById('modal-amount').textContent = fmt(pending.amount);
+    document.getElementById('modal-items-text').textContent = pending.items && pending.items.length > 0
+      ? pending.items.map(i => `${i.name}: ${fmt(i.preis)}`).join(' · ')
+      : '';
+    document.getElementById('payment-modal').classList.add('show');
+  }
+}
+
+function acceptPaymentRequest() {
+  const db = getDB();
+  const req = (db.paymentRequests || []).find(r => r.id === pendingPaymentReqId);
+  if (!req) return;
+  const payer = db.accounts[currentUser];
+  const receiver = db.accounts[req.from];
+  if (!payer || !receiver) return;
+  if (payer.balance < req.amount) {
+    document.getElementById('modal-status').textContent = 'Nicht genug Guthaben!';
+    document.getElementById('modal-status').className = 'status-msg show status-err';
+    return;
+  }
+  payer.balance -= req.amount;
+  receiver.balance += req.amount;
+  req.status = 'accepted';
+  db.transactions = db.transactions || [];
+  db.transactions.push({
+    id: genId(), from: currentUser, to: req.from,
+    amount: req.amount,
+    note: 'Zahlung: ' + (req.items || []).map(i=>i.name).join(', '),
+    time: getDate()
+  });
+  saveDB(db);
+  closePaymentModal();
+  updateDashboard();
+  showNotification(`✅ ${fmt(req.amount)} bezahlt!`);
+}
+
+function declinePaymentRequest() {
+  const db = getDB();
+  const req = (db.paymentRequests || []).find(r => r.id === pendingPaymentReqId);
+  if (req) { req.status = 'declined'; saveDB(db); }
+  closePaymentModal();
+  showNotification('❌ Zahlung abgelehnt');
+}
+
+function closePaymentModal() {
+  document.getElementById('payment-modal').classList.remove('show');
+  document.getElementById('modal-status').className = 'status-msg';
+  pendingPaymentReqId = null;
+}
+
+// =====================================================================
+// POLLING — simulates real-time sync
+// =====================================================================
+function startPolling() {
+  clearInterval(pollingInterval);
+  pollingInterval = setInterval(() => {
+    updateDashboard();
+    checkPaymentRequests();
+  }, 2000);
+}
+
+// =====================================================================
+// INIT
+// =====================================================================
+// Check if logged in (page reload)
+window.addEventListener('storage', () => { updateDashboard(); checkPaymentRequests(); });
+</script>
+</body>
+</html>
