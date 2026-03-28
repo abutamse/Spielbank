@@ -206,7 +206,6 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── SHOP STYLES ── */
   .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
   @media(max-width: 480px) { .shop-grid { grid-template-columns: repeat(2, 1fr); } }
   .product-card {
@@ -224,6 +223,7 @@
     background: rgba(0,0,0,0.4);
     display: flex; align-items: center; justify-content: center;
     font-size: 2.5rem;
+    overflow: hidden;
   }
   .product-img img { width: 100%; height: 100%; object-fit: cover; }
   .product-info { padding: 10px; }
@@ -235,7 +235,7 @@
     background: rgba(0,0,0,0.7); border: 1px solid rgba(201,168,76,0.3);
     border-radius: 10px; padding: 2px 7px; font-size: 0.6rem; color: var(--gold);
   }
-  .out-of-stock { opacity: 0.5; }
+  .out-of-stock { opacity: 0.5; pointer-events: none; }
   .out-of-stock::after {
     content: 'AUSVERKAUFT';
     position: absolute; inset: 0;
@@ -252,20 +252,6 @@
   }
   .cat-chip.active { background: rgba(201,168,76,0.2); border-color: var(--gold); color: var(--gold); }
   .cat-chip:hover { border-color: var(--gold); color: var(--gold); }
-  .seller-section { margin-bottom: 20px; }
-  .seller-header {
-    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-    background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.2);
-    border-radius: 8px; cursor: pointer; margin-bottom: 10px;
-    transition: background 0.2s;
-  }
-  .seller-header:hover { background: rgba(201,168,76,0.14); }
-  .seller-name { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--cream); }
-  .seller-count { font-size: 0.7rem; color: rgba(245,230,200,0.4); }
-  .seller-chevron { margin-left: auto; color: var(--gold); font-size: 0.8rem; transition: transform 0.2s; }
-  .seller-chevron.open { transform: rotate(180deg); }
-
-  /* MY SHOP */
   .my-product-row {
     display: flex; align-items: center; gap: 10px;
     padding: 10px; border: 1px solid rgba(201,168,76,0.12);
@@ -282,8 +268,6 @@
   .my-product-name { font-size: 0.82rem; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .my-product-meta { font-size: 0.7rem; color: rgba(245,230,200,0.4); }
   .my-product-actions { display: flex; gap: 6px; flex-shrink: 0; }
-
-  /* INVENTORY */
   .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
   .inv-card {
     background: rgba(0,0,0,0.3); border: 1px solid rgba(201,168,76,0.15);
@@ -301,7 +285,7 @@
   .inv-meta { font-size: 0.67rem; color: rgba(245,230,200,0.4); margin-bottom: 6px; }
   .inv-action { width: 100%; padding: 6px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-family: 'DM Mono', monospace; font-weight: 700; letter-spacing: 0.5px; }
 
-  /* IMAGE UPLOAD */
+  /* ── SAMSUNG-SAFE IMAGE UPLOAD ── */
   .img-upload-area {
     border: 2px dashed var(--gold-dark); border-radius: 8px;
     padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s;
@@ -310,7 +294,9 @@
   }
   .img-upload-area:hover { border-color: var(--gold); color: var(--cream); }
   .img-upload-area.has-img { padding: 4px; }
-  .img-upload-area img { max-height: 120px; border-radius: 4px; }
+  .img-upload-area img { max-height: 120px; border-radius: 4px; max-width: 100%; }
+  /* Samsung: label trick statt onclick */
+  .img-upload-label { display: block; cursor: pointer; width: 100%; }
   #upload-img-input { display: none; }
   .price-edit-input {
     width: 80px; background: rgba(0,0,0,0.5); border: 1px solid var(--gold-dark);
@@ -322,18 +308,11 @@
     background: rgba(26,110,156,0.3); border: 1px solid rgba(26,110,156,0.5);
     color: #6dbcff; font-size: 0.65rem; margin-left: 6px;
   }
-  .uses-bar {
-    display: flex; gap: 2px; margin-top: 4px;
-  }
-  .use-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: rgba(201,168,76,0.4); flex-shrink: 0;
-  }
+  .uses-bar { display: flex; gap: 2px; margin-top: 4px; }
+  .use-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(201,168,76,0.4); flex-shrink: 0; }
   .use-dot.used { background: rgba(201,168,76,0.1); }
   .empty-state { text-align: center; padding: 30px; color: rgba(245,230,200,0.3); font-size: 0.8rem; }
   .empty-state .icon { font-size: 2rem; margin-bottom: 8px; }
-
-  /* CALC */
   .calc-display {
     background: rgba(0,0,0,0.6); border: 1px solid var(--gold-dark); border-radius: 6px;
     padding: 10px 14px; font-family: 'Playfair Display', serif; font-size: 1.6rem;
@@ -382,9 +361,9 @@
       <div id="tab-register">
         <h3>Neues Konto erstellen</h3>
         <div class="label">Name</div>
-        <input type="text" id="reg-name" placeholder="Dein Name..." />
+        <input type="text" id="reg-name" placeholder="Dein Name..." autocomplete="off" />
         <div class="label">Passwort</div>
-        <input type="text" id="reg-pass" placeholder="Passwort wählen..." />
+        <input type="text" id="reg-pass" placeholder="Passwort wählen..." autocomplete="off" />
         <div class="label">Startguthaben (€)</div>
         <div class="chip-row">
           <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=50">50€</span>
@@ -399,9 +378,9 @@
       <div id="tab-login" style="display:none">
         <h3>Einloggen</h3>
         <div class="label">Name</div>
-        <input type="text" id="login-name" placeholder="Dein Name..." />
+        <input type="text" id="login-name" placeholder="Dein Name..." autocomplete="off" />
         <div class="label">Passwort</div>
-        <input type="password" id="login-pass" placeholder="Passwort..." />
+        <input type="password" id="login-pass" placeholder="Passwort..." autocomplete="off" />
         <div id="login-status" class="status-msg"></div>
         <button class="btn btn-gold btn-full" id="login-btn" onclick="loginAccount()">Einloggen</button>
       </div>
@@ -454,7 +433,7 @@
       <hr class="divider">
       <h3>Mit anderem Konto verbinden</h3>
       <div class="label">Passwort des anderen Kontos</div>
-      <input type="text" id="connect-pass" placeholder="Passwort eingeben..." />
+      <input type="text" id="connect-pass" placeholder="Passwort eingeben..." autocomplete="off" />
       <div id="connect-status" class="status-msg"></div>
       <button class="btn btn-gold btn-full" onclick="connectToAccount()">🔗 Verbinden</button>
       <hr class="divider">
@@ -518,10 +497,13 @@
       <div id="shop-upload" style="display:none">
         <h3>Neues Produkt hochladen</h3>
         <div class="label">Produktbild</div>
-        <div class="img-upload-area" id="upload-img-area" onclick="document.getElementById('upload-img-input').click()">
-          <span style="font-size:1.8rem;">📷</span>
-          <span>Bild auswählen oder hier klicken</span>
-        </div>
+        <!-- Samsung-Fix: label statt onclick auf div -->
+        <label class="img-upload-label" for="upload-img-input">
+          <div class="img-upload-area" id="upload-img-area">
+            <span style="font-size:1.8rem;">📷</span>
+            <span>Bild auswählen oder hier tippen</span>
+          </div>
+        </label>
         <input type="file" id="upload-img-input" accept="image/*" onchange="handleImgUpload(event)" />
         <input type="hidden" id="upload-img-data" />
         <div class="label">Produktname</div>
@@ -542,7 +524,7 @@
         <div class="label">Beschreibung (optional)</div>
         <textarea id="upload-desc" placeholder="Kurze Beschreibung..." rows="2" style="resize:vertical;"></textarea>
         <div id="upload-status" class="status-msg"></div>
-        <button class="btn btn-gold btn-full" onclick="uploadProduct()">📤 Produkt hochladen</button>
+        <button class="btn btn-gold btn-full" id="upload-btn" onclick="uploadProduct()">📤 Produkt hochladen</button>
       </div>
 
       <div id="shop-resell" style="display:none">
@@ -654,7 +636,7 @@
       <button class="btn btn-outline btn-sm" onclick="changeBuyQty(1)">+</button>
     </div>
     <div id="buy-modal-status" class="status-msg"></div>
-    <button class="btn btn-green btn-full" onclick="confirmBuy()">🛒 Kaufen</button>
+    <button class="btn btn-green btn-full" id="confirm-buy-btn" onclick="confirmBuy()">🛒 Kaufen</button>
   </div>
 </div>
 
@@ -688,14 +670,16 @@ let calcTotal     = 0;
 let realtimeSubs  = [];
 let currentBuyProduct = null;
 let buyQty        = 1;
+let buyInProgress = false; // ← FIX: verhindert Doppelklick
 let currentUseItem = null;
 let marketFilter  = 'alle';
 let invFilter     = 'alle';
 let marketSeller  = null;
+let marketProductsCache = {};
 
 const CAT_LABELS = { essen:'🍔 Essen', kleidung:'👕 Kleidung', wohnung:'🏠 Wohnung', moebel:'🛋️ Möbel', transport:'🚗 Transport' };
 const CAT_EMOJI  = { essen:'🍔', kleidung:'👕', wohnung:'🏠', moebel:'🛋️', transport:'🚗' };
-const CAT_USES   = { essen: 1, kleidung: 10 }; // essen=1mal, kleidung=10mal, others unlimited
+const CAT_USES   = { essen: 1, kleidung: 10 };
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 const fmt  = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
@@ -837,7 +821,9 @@ async function connectToAccount() {
 }
 
 document.getElementById('my-password-display').addEventListener('click', function() {
-  navigator.clipboard.writeText(this.textContent).catch(()=>{});
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(this.textContent).catch(()=>{});
+  }
   showNotif('📋 Passwort kopiert!');
 });
 
@@ -881,12 +867,21 @@ async function sendMoney() {
   if (!toName) return showStatus('transfer-status','Empfänger wählen!', false);
   if (!amount || amount <= 0) return showStatus('transfer-status','Betrag eingeben!', false);
   if (amount > currentUser.balance) return showStatus('transfer-status','Nicht genug Guthaben!', false);
+
+  // Frisches Guthaben holen bevor wir abbuchen
+  const { data: freshSelf } = await db.from('accounts').select('balance').eq('id', currentUser.id).single();
+  if (!freshSelf) return showStatus('transfer-status','Fehler beim Laden des Kontos!', false);
+  if (amount > freshSelf.balance) return showStatus('transfer-status','Nicht genug Guthaben!', false);
+
   const { data: toAcc } = await db.from('accounts').select('*').eq('name', toName).single();
   if (!toAcc) return showStatus('transfer-status','Empfänger nicht gefunden!', false);
-  await db.from('accounts').update({ balance: currentUser.balance - amount }).eq('id', currentUser.id);
+
+  const { error: e1 } = await db.from('accounts').update({ balance: freshSelf.balance - amount }).eq('id', currentUser.id);
+  if (e1) return showStatus('transfer-status','Fehler: ' + e1.message, false);
   await db.from('accounts').update({ balance: toAcc.balance + amount }).eq('id', toAcc.id);
   await db.from('transactions').insert({ from_user: currentUser.name, to_user: toName, amount, note });
-  currentUser.balance -= amount;
+
+  currentUser.balance = freshSelf.balance - amount;
   renderDashboard();
   showStatus('transfer-status', `✅ ${fmt(amount)} an ${toName} gesendet!`, true);
   showNotif(`💸 ${fmt(amount)} an ${toName} gesendet`);
@@ -914,8 +909,6 @@ async function renderTxList() {
 }
 
 // ─── MARKTPLATZ ───────────────────────────────────────────────────────────────
-let marketProductsCache = {}; // id -> product object
-
 function renderMarketSellerList() {
   const conns = currentUser.connections || [];
   const div = document.getElementById('seller-list-market');
@@ -945,7 +938,6 @@ function closeMarketSeller() {
 async function loadMarketProducts(sellerName) {
   const { data: products } = await db.from('products')
     .select('*').eq('seller', sellerName).eq('active', true).order('created_at', { ascending: false });
-  // Cache products by id so onclick can look them up safely
   marketProductsCache = {};
   (products || []).forEach(p => { marketProductsCache[p.id] = p; });
   renderMarketCatFilter(products || []);
@@ -999,6 +991,7 @@ function handleProductClick(el) {
 function openBuyModal(product) {
   currentBuyProduct = product;
   buyQty = 1;
+  buyInProgress = false;
   const p = currentBuyProduct;
   const imgDiv = document.getElementById('buy-modal-img');
   imgDiv.innerHTML = p.image_data ? `<img src="${p.image_data}" style="width:100%;height:100%;object-fit:cover;" />` : `<span>${CAT_EMOJI[p.category]||'📦'}</span>`;
@@ -1009,6 +1002,7 @@ function openBuyModal(product) {
   document.getElementById('buy-modal-stock').textContent  = p.stock + ' Stück';
   document.getElementById('buy-qty-display').textContent  = 1;
   document.getElementById('buy-modal-status').className   = 'status-msg';
+  setBtnLoading('confirm-buy-btn', false, '🛒 Kaufen');
   document.getElementById('buy-modal').classList.add('show');
 }
 
@@ -1021,50 +1015,96 @@ function changeBuyQty(delta) {
 function closeBuyModal() {
   document.getElementById('buy-modal').classList.remove('show');
   currentBuyProduct = null;
+  buyInProgress = false;
 }
 
 async function confirmBuy() {
+  // ── FIX: Doppelklick-Schutz ──
+  if (buyInProgress) return;
   const p = currentBuyProduct;
   if (!p) return;
+
   const total = p.price * buyQty;
+
   if (total > currentUser.balance) return showStatus('buy-modal-status','Nicht genug Guthaben!', false);
   if (buyQty > p.stock) return showStatus('buy-modal-status','Nicht genug Lager!', false);
+  if (p.seller === currentUser.name) return showStatus('buy-modal-status','Du kannst nicht dein eigenes Produkt kaufen!', false);
 
-  // Deduct buyer balance
-  await db.from('accounts').update({ balance: currentUser.balance - total }).eq('id', currentUser.id);
+  buyInProgress = true;
+  setBtnLoading('confirm-buy-btn', true, '🛒 Kaufen');
 
-  // Credit seller
-  const { data: seller } = await db.from('accounts').select('*').eq('name', p.seller).single();
-  if (seller) await db.from('accounts').update({ balance: seller.balance + total }).eq('id', seller.id);
+  try {
+    // ── Frisches Guthaben & Lager holen ──
+    const { data: freshSelf, error: selfErr } = await db.from('accounts').select('balance').eq('id', currentUser.id).single();
+    if (selfErr || !freshSelf) throw new Error('Konto laden fehlgeschlagen');
+    if (total > freshSelf.balance) throw new Error('Nicht genug Guthaben!');
 
-  // Reduce stock
-  await db.from('products').update({ stock: p.stock - buyQty }).eq('id', p.id);
+    const { data: freshProd, error: prodErr } = await db.from('products').select('stock,active').eq('id', p.id).single();
+    if (prodErr || !freshProd) throw new Error('Produkt nicht gefunden');
+    if (!freshProd.active) throw new Error('Produkt nicht mehr verfügbar');
+    if (buyQty > freshProd.stock) throw new Error('Nicht genug Lager!');
 
-  // Transaction
-  await db.from('transactions').insert({ from_user: currentUser.name, to_user: p.seller, amount: total, note: `Kauf: ${p.name} x${buyQty}` });
+    // ── Lager verringern ──
+    const { error: stockErr } = await db.from('products').update({ stock: freshProd.stock - buyQty }).eq('id', p.id);
+    if (stockErr) throw new Error('Lager-Fehler: ' + stockErr.message);
 
-  // Add to inventory
-  for (let i = 0; i < buyQty; i++) {
-    const maxUses = CAT_USES[p.category] || null;
-    await db.from('inventory').insert({
-      owner: currentUser.name,
-      product_id: p.id,
-      name: p.name,
-      category: p.category,
-      image_data: p.image_data,
-      price_paid: p.price,
-      uses_left: maxUses,
-      max_uses: maxUses,
-      active: true
+    // ── Käufer-Guthaben abziehen ──
+    const { error: buyerErr } = await db.from('accounts').update({ balance: freshSelf.balance - total }).eq('id', currentUser.id);
+    if (buyerErr) {
+      // Rollback Lager
+      await db.from('products').update({ stock: freshProd.stock }).eq('id', p.id);
+      throw new Error('Zahlung fehlgeschlagen: ' + buyerErr.message);
+    }
+
+    // ── Verkäufer-Guthaben gutschreiben ──
+    const { data: seller } = await db.from('accounts').select('balance').eq('name', p.seller).single();
+    if (seller) {
+      await db.from('accounts').update({ balance: seller.balance + total }).eq('name', p.seller);
+    }
+
+    // ── Transaktion speichern ──
+    await db.from('transactions').insert({
+      from_user: currentUser.name,
+      to_user: p.seller,
+      amount: total,
+      note: `Kauf: ${p.name} x${buyQty}`
     });
-  }
 
-  currentUser.balance -= total;
-  renderDashboard();
-  closeBuyModal();
-  showNotif(`🛒 ${p.name} x${buyQty} gekauft für ${fmt(total)}!`);
-  if (marketSeller) loadMarketProducts(marketSeller);
-  renderTxList();
+    // ── Inventar hinzufügen ──
+    const invItems = [];
+    for (let i = 0; i < buyQty; i++) {
+      const maxUses = CAT_USES[p.category] || null;
+      invItems.push({
+        owner: currentUser.name,
+        product_id: p.id,
+        name: p.name,
+        category: p.category,
+        image_data: p.image_data || null,
+        price_paid: p.price,
+        uses_left: maxUses,
+        max_uses: maxUses,
+        active: true
+      });
+    }
+    const { error: invErr } = await db.from('inventory').insert(invItems);
+    if (invErr) {
+      // Kein kritischer Fehler – Kauf war erfolgreich, nur Inventar hat nicht geklappt
+      showNotif(`⚠️ Kauf ok, aber Inventar-Fehler: ${invErr.message}`);
+    }
+
+    // ── Lokalen State aktualisieren ──
+    currentUser.balance = freshSelf.balance - total;
+    renderDashboard();
+    closeBuyModal();
+    showNotif(`🛒 ${p.name} x${buyQty} gekauft für ${fmt(total)}!`);
+    if (marketSeller) loadMarketProducts(marketSeller);
+    renderTxList();
+
+  } catch (err) {
+    showStatus('buy-modal-status', '❌ ' + err.message, false);
+    buyInProgress = false;
+    setBtnLoading('confirm-buy-btn', false, '🛒 Kaufen');
+  }
 }
 
 // ─── MEIN SHOP ────────────────────────────────────────────────────────────────
@@ -1119,12 +1159,10 @@ async function addStock(id, current) {
 }
 
 async function deleteProduct(id) {
-  // Immediately remove from DOM for instant feedback
   const row = document.getElementById('prodrow-' + id);
   if (row) row.style.opacity = '0.3';
   const { error } = await db.from('products').delete().eq('id', id).eq('seller', currentUser.name);
   if (error) {
-    // Fallback: try setting active=false
     const { error: e2 } = await db.from('products').update({ active: false }).eq('id', id);
     if (e2) { showNotif('❌ Löschen fehlgeschlagen: ' + e2.message); if(row) row.style.opacity='1'; return; }
   }
@@ -1132,44 +1170,77 @@ async function deleteProduct(id) {
   loadMyProducts();
 }
 
-// ─── IMAGE UPLOAD ─────────────────────────────────────────────────────────────
+// ─── IMAGE UPLOAD (Samsung-Fix) ────────────────────────────────────────────────
+// Samsung Internet hat Probleme mit onclick auf div → wir nutzen <label for="input">
+// Außerdem: EXIF-Rotation über canvas korrigieren, HEIC-Fallback
+
 function compressImage(file, maxWidth, quality) {
   return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let w = img.width, h = img.height;
-        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
+    // Blob URL statt FileReader – stabiler auf Samsung
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+      if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+      // Mindestgröße sicherstellen
+      if (w < 1 || h < 1) { resolve(null); return; }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      try {
         resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = () => resolve(null);
-      img.src = ev.target.result;
+      } catch(e) {
+        resolve(null);
+      }
     };
-    reader.onerror = () => resolve(null);
-    reader.readAsDataURL(file);
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
   });
 }
 
 async function handleImgUpload(e) {
-  const file = e.target.files[0];
+  const file = e.target.files && e.target.files[0];
   if (!file) return;
+
   const area = document.getElementById('upload-img-area');
   area.innerHTML = '<span style="font-size:1.2rem;">⏳</span><span>Bild wird verarbeitet...</span>';
+  area.classList.remove('has-img');
 
-  // Compress: max 600px wide, quality 0.7 → keeps it well under 200KB
-  const data = await compressImage(file, 600, 0.7);
-  if (!data) {
-    area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Fehler beim Laden des Bildes</span>';
+  // Dateityp prüfen
+  if (!file.type.startsWith('image/')) {
+    area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Nur Bilder erlaubt!</span>';
     return;
   }
+
+  const data = await compressImage(file, 600, 0.72);
+
+  if (!data) {
+    area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Fehler beim Laden. Anderes Bild versuchen.</span>';
+    // Input zurücksetzen damit nochmal gewählt werden kann
+    e.target.value = '';
+    return;
+  }
+
   const kb = Math.round(data.length * 0.75 / 1024);
+  if (kb > 700) {
+    // Nochmal mit niedrigerer Qualität versuchen
+    const data2 = await compressImage(file, 400, 0.5);
+    if (data2) {
+      document.getElementById('upload-img-data').value = data2;
+      const kb2 = Math.round(data2.length * 0.75 / 1024);
+      area.innerHTML = `<img src="${data2}" /><div style="font-size:0.65rem;color:rgba(245,230,200,0.4);margin-top:4px;">${kb2} KB (komprimiert)</div>`;
+    } else {
+      area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Bild zu groß! Bitte kleineres Bild wählen.</span>';
+    }
+    area.classList.add('has-img');
+    return;
+  }
+
   document.getElementById('upload-img-data').value = data;
-  area.innerHTML = `<img src="${data}" style="max-height:120px;border-radius:4px;" /><div style="font-size:0.65rem;color:rgba(245,230,200,0.4);margin-top:4px;">${kb} KB</div>`;
+  area.innerHTML = `<img src="${data}" /><div style="font-size:0.65rem;color:rgba(245,230,200,0.4);margin-top:4px;">${kb} KB</div>`;
   area.classList.add('has-img');
 }
 
@@ -1181,15 +1252,12 @@ async function uploadProduct() {
   const desc     = document.getElementById('upload-desc').value.trim();
   const imgData  = document.getElementById('upload-img-data').value;
 
-  if (!name) return showStatus('upload-status','Name eingeben!', false);
+  if (!name)     return showStatus('upload-status','Name eingeben!', false);
   if (!category) return showStatus('upload-status','Kategorie wählen!', false);
   if (!price || price <= 0) return showStatus('upload-status','Preis eingeben!', false);
+  if (imgData && imgData.length > 700000) return showStatus('upload-status','❌ Bild zu groß! Bitte kleineres Bild wählen.', false);
 
-  // Check size before sending (~700KB base64 limit to be safe)
-  if (imgData && imgData.length > 700000) {
-    return showStatus('upload-status','❌ Bild zu groß! Bitte kleineres Bild wählen.', false);
-  }
-
+  setBtnLoading('upload-btn', true, '📤 Produkt hochladen');
   showStatus('upload-status','⏳ Wird hochgeladen...', true);
 
   const { error } = await db.from('products').insert({
@@ -1200,7 +1268,10 @@ async function uploadProduct() {
     active: true
   });
 
+  setBtnLoading('upload-btn', false, '📤 Produkt hochladen');
+
   if (error) return showStatus('upload-status','❌ Fehler: ' + error.message, false);
+
   showStatus('upload-status','✅ Produkt hochgeladen!', true);
   showNotif('📤 ' + name + ' in deinen Shop eingestellt!');
 
@@ -1211,8 +1282,9 @@ async function uploadProduct() {
   document.getElementById('upload-stock').value    = '1';
   document.getElementById('upload-desc').value     = '';
   document.getElementById('upload-img-data').value = '';
+  document.getElementById('upload-img-input').value = '';
   const area = document.getElementById('upload-img-area');
-  area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span>Bild auswählen oder hier klicken</span>';
+  area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span>Bild auswählen oder hier tippen</span>';
   area.classList.remove('has-img');
 
   setTimeout(() => switchShopTab('produkte'), 1200);
@@ -1247,13 +1319,11 @@ async function resellItem(invId) {
   if (!newPrice || newPrice <= 0) return showNotif('❌ Preis eingeben!');
   const { data: item } = await db.from('inventory').select('*').eq('id', invId).single();
   if (!item) return;
-  // Create product listing
   await db.from('products').insert({
     seller: currentUser.name, name: item.name, category: item.category,
-    price: newPrice, stock: 1, image_data: item.image_data, active: true,
+    price: newPrice, stock: 1, image_data: item.image_data || null, active: true,
     description: 'Weiterverkauf (gebraucht)'
   });
-  // Remove from inventory
   await db.from('inventory').update({ active: false }).eq('id', invId);
   showNotif('✅ ' + item.name + ' für ' + fmt(newPrice) + ' in Shop eingestellt!');
   loadResellInventory();
@@ -1274,9 +1344,9 @@ async function renderInventar() {
   let filtered = items || [];
   if (invFilter !== 'alle') filtered = filtered.filter(i => i.category === invFilter);
 
-  // Update filter chips
   document.querySelectorAll('#inv-cat-filter .cat-chip').forEach(b => {
-    b.classList.toggle('active', b.getAttribute('onclick').includes(`'${invFilter}'`));
+    const fn = b.getAttribute('onclick') || '';
+    b.classList.toggle('active', fn.includes(`'${invFilter}'`));
   });
 
   if (!filtered.length) {
@@ -1359,7 +1429,7 @@ async function useItem() {
     showNotif(`🍽️ Lecker! ${item.name} gegessen!`);
     renderInventar();
   } else if (item.category === 'kleidung') {
-    const usesLeft = (item.uses_left || 10) - 1;
+    const usesLeft = (item.uses_left !== null ? item.uses_left : 10) - 1;
     if (usesLeft <= 0) {
       const { error } = await db.from('inventory').delete().eq('id', item.id).eq('owner', currentUser.name);
       if (error) await db.from('inventory').update({ uses_left: 0, active: false }).eq('id', item.id);
@@ -1368,9 +1438,8 @@ async function useItem() {
     } else {
       await db.from('inventory').update({ uses_left: usesLeft }).eq('id', item.id);
       currentUseItem.uses_left = usesLeft;
-      const uses = usesLeft;
       const usesBar = document.getElementById('use-modal-uses');
-      usesBar.innerHTML = Array(item.max_uses||10).fill(0).map((_,i) => `<span class="use-dot ${i >= uses ? 'used' : ''}"></span>`).join('');
+      usesBar.innerHTML = Array(item.max_uses||10).fill(0).map((_,i) => `<span class="use-dot ${i >= usesLeft ? 'used' : ''}"></span>`).join('');
       document.getElementById('use-modal-meta').textContent = (CAT_LABELS[item.category]||'') + ` · ${usesLeft} Nutzungen übrig`;
       showNotif(`👕 ${item.name} angezogen! Noch ${usesLeft}× möglich.`);
     }
@@ -1387,6 +1456,7 @@ function calcInput(v) {
 }
 function calcEquals() {
   try {
+    // eslint-disable-next-line no-new-func
     let r = Function('"use strict";return (' + calcExpr + ')')();
     r = Math.round(r * 100) / 100; calcExpr = String(r); calcTotal = r;
     document.getElementById('calc-display').textContent = fmt(r); updateCalcNote();
@@ -1460,19 +1530,24 @@ async function acceptPaymentRequest() {
   if (!pendingReqId) return;
   const { data: req } = await db.from('payment_requests').select('*').eq('id', pendingReqId).single();
   if (!req) return;
-  if (currentUser.balance < req.amount) {
+
+  // Frisches Guthaben holen
+  const { data: freshSelf } = await db.from('accounts').select('balance').eq('id', currentUser.id).single();
+  const balance = freshSelf ? freshSelf.balance : currentUser.balance;
+
+  if (balance < req.amount) {
     const st = document.getElementById('modal-status');
     st.textContent = 'Nicht genug Guthaben!'; st.className = 'status-msg show status-err'; return;
   }
   const { data: fromAcc } = await db.from('accounts').select('*').eq('name', req.from_user).single();
-  await db.from('accounts').update({ balance: currentUser.balance - req.amount }).eq('id', currentUser.id);
+  await db.from('accounts').update({ balance: balance - req.amount }).eq('id', currentUser.id);
   if (fromAcc) await db.from('accounts').update({ balance: fromAcc.balance + req.amount }).eq('id', fromAcc.id);
   await db.from('transactions').insert({
     from_user: currentUser.name, to_user: req.from_user, amount: req.amount,
     note: 'Zahlung: ' + (Array.isArray(req.items) ? req.items.map(i=>i.name).join(', ') : '')
   });
   await db.from('payment_requests').update({ status: 'accepted' }).eq('id', pendingReqId);
-  currentUser.balance -= req.amount;
+  currentUser.balance = balance - req.amount;
   renderDashboard(); closePaymentModal();
   showNotif('✅ ' + fmt(req.amount) + ' bezahlt!'); renderTxList();
 }
@@ -1498,7 +1573,7 @@ function showTab(name) {
   if (name === 'verlauf')    renderTxList();
   if (name === 'inventar')   renderInventar();
   if (name === 'marktplatz') renderMarketSellerList();
-  if (name === 'meinshop')   { switchShopTab('produkte'); }
+  if (name === 'meinshop')   switchShopTab('produkte');
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
