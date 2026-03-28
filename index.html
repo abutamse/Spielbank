@@ -340,6 +340,15 @@
 
 <div id="notification-bar">🔔</div>
 
+<!-- DEBUG PANEL -->
+<div id="debug-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;background:#0a1810;border-top:2px solid var(--gold);max-height:50vh;overflow-y:auto;padding:12px 16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <span style="color:var(--gold);font-size:0.8rem;font-weight:700;">🐛 DEBUG LOG</span>
+    <button onclick="toggleDebug()" style="background:none;border:1px solid var(--gold-dark);color:var(--cream);padding:3px 10px;border-radius:4px;cursor:pointer;font-size:0.72rem;">Schließen</button>
+  </div>
+  <div id="debug-output" style="font-family:monospace;"></div>
+</div>
+
 <div class="loading-overlay" id="loading-overlay">
   <div class="loading-spinner"></div>
   <div style="color:var(--gold);font-family:'Playfair Display',serif;font-size:1.2rem;letter-spacing:3px;">SPIELBANK</div>
@@ -411,6 +420,7 @@
         <button class="btn btn-outline btn-sm" onclick="showTab('rechner')">🧮 Rechner</button>
         <button class="btn btn-outline btn-sm" onclick="showTab('verlauf')">📜 Verlauf</button>
         <button class="btn btn-red btn-sm" onclick="logout()">Abmelden</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleDebug()" style="border-color:rgba(201,168,76,0.3);color:rgba(245,230,200,0.4);font-size:0.65rem;">🐛 Debug</button>
       </div>
     </div>
 
@@ -655,6 +665,32 @@
 </div>
 
 <script>
+// ─── DEBUG LOG ────────────────────────────────────────────────────────────────
+const debugEntries = [];
+function debugLog(label, data) {
+  const entry = { label, data, time: new Date().toLocaleTimeString('de-DE') };
+  debugEntries.unshift(entry);
+  if (debugEntries.length > 20) debugEntries.pop();
+  const panel = document.getElementById('debug-panel');
+  if (panel && panel.style.display !== 'none') renderDebugPanel();
+  console.log('[DEBUG]', label, data);
+}
+function renderDebugPanel() {
+  const out = document.getElementById('debug-output');
+  if (!out) return;
+  out.innerHTML = debugEntries.map(e =>
+    `<div style="border-bottom:1px solid rgba(201,168,76,0.15);padding:6px 0;font-size:0.7rem;">
+      <span style="color:var(--gold);">[${e.time}] ${e.label}</span><br>
+      <pre style="color:rgba(245,230,200,0.7);white-space:pre-wrap;word-break:break-all;margin-top:3px;">${JSON.stringify(e.data, null, 2)}</pre>
+    </div>`
+  ).join('');
+}
+function toggleDebug() {
+  const p = document.getElementById('debug-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  if (p.style.display !== 'none') renderDebugPanel();
+}
+
 // ─── SUPABASE INIT ────────────────────────────────────────────────────────────
 const SUPA_URL = 'https://rfnciohajcemftuzefkx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmbmNpb2hhamNlbWZ0dXplZmt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NzE5NDcsImV4cCI6MjA5MDI0Nzk0N30.L-K0IuyNqHudLI9R-RIsu26aawXtRsz16sjoMtn04Fk';
@@ -1071,25 +1107,62 @@ async function confirmBuy() {
     });
 
     // ── Inventar hinzufügen ──
-    const invItems = [];
-    for (let i = 0; i < buyQty; i++) {
-      const maxUses = CAT_USES[p.category] || null;
-      invItems.push({
-        owner: currentUser.name,
-        product_id: p.id,
-        name: p.name,
-        category: p.category,
-        image_data: p.image_data || null,
-        price_paid: p.price,
-        uses_left: maxUses,
-        max_uses: maxUses,
-        active: true
-      });
+    // Erst die Spalten der inventory-Tabelle prüfen, dann gezielt einfügen
+    const maxUses = CAT_USES[p.category] || null;
+
+    // Schritt 1: Minimaler Test-Insert um Spalten zu validieren
+    const testPayload = { owner: currentUser.name, name: p.name };
+    const { error: testErr } = await db.from('inventory').insert(testPayload).select('id').single();
+
+    if (testErr) {
+      // Tabelle nicht erreichbar oder owner/name Spalte fehlt
+      debugLog('INV_TEST_ERR', testErr);
+      showStatus('buy-modal-status', `⚠️ Inventar-Tabellenfehler: ${testErr.message} (Code: ${testErr.code})`, false);
+      // Kauf war trotzdem erfolgreich, also State updaten
+      currentUser.balance = freshSelf.balance - total;
+      renderDashboard(); closeBuyModal();
+      showNotif(`🛒 Kauf ok! Aber Inventar-Fehler – siehe Debug-Log`);
+      if (marketSeller) loadMarketProducts(marketSeller);
+      renderTxList();
+      return; // früh raus
     }
-    const { error: invErr } = await db.from('inventory').insert(invItems);
+
+    // Test-Insert hat funktioniert → die ID zurückholen und mit echten Daten updaten
+    // (Supabase gibt bei single() die eingefügte Zeile zurück wenn select() dabei ist)
+    // Wir löschen den Test-Eintrag und machen einen richtigen Insert
+    // ODER wir versuchen direkt den vollen Insert
+    await db.from('inventory').delete().eq('owner', currentUser.name).eq('name', p.name).is('product_id', null);
+
+    // Schritt 2: Echter Insert – alle Felder einzeln versuchen
+    const fullPayload = {
+      owner: currentUser.name,
+      name: p.name,
+    };
+    // Nur Felder hinzufügen die wahrscheinlich existieren
+    if (p.category !== undefined) fullPayload.category = p.category;
+    if (p.id !== undefined) fullPayload.product_id = p.id;
+    if (maxUses !== null) { fullPayload.uses_left = maxUses; fullPayload.max_uses = maxUses; }
+    fullPayload.active = true;
+    if (p.price !== undefined) fullPayload.price_paid = p.price;
+    // image_data nur wenn nicht null (spart Payload-Größe)
+    if (p.image_data) fullPayload.image_data = p.image_data;
+
+    const allInvItems = [];
+    for (let i = 0; i < buyQty; i++) allInvItems.push({ ...fullPayload });
+
+    const { data: invData, error: invErr } = await db.from('inventory').insert(allInvItems).select('id');
+    debugLog('INV_INSERT', { payload: fullPayload, qty: buyQty, error: invErr, data: invData });
+
     if (invErr) {
-      // Kein kritischer Fehler – Kauf war erfolgreich, nur Inventar hat nicht geklappt
-      showNotif(`⚠️ Kauf ok, aber Inventar-Fehler: ${invErr.message}`);
+      showStatus('buy-modal-status', `⚠️ Inventar-Fehler: ${invErr.message} | Code: ${invErr.code} | Details: ${JSON.stringify(invErr.details)}`, false);
+      currentUser.balance = freshSelf.balance - total;
+      renderDashboard();
+      // Modal NICHT schließen damit Fehler sichtbar bleibt
+      buyInProgress = false;
+      setBtnLoading('confirm-buy-btn', false, '🛒 Kaufen');
+      if (marketSeller) loadMarketProducts(marketSeller);
+      renderTxList();
+      return;
     }
 
     // ── Lokalen State aktualisieren ──
