@@ -914,6 +914,8 @@ async function renderTxList() {
 }
 
 // ─── MARKTPLATZ ───────────────────────────────────────────────────────────────
+let marketProductsCache = {}; // id -> product object
+
 function renderMarketSellerList() {
   const conns = currentUser.connections || [];
   const div = document.getElementById('seller-list-market');
@@ -943,6 +945,9 @@ function closeMarketSeller() {
 async function loadMarketProducts(sellerName) {
   const { data: products } = await db.from('products')
     .select('*').eq('seller', sellerName).eq('active', true).order('created_at', { ascending: false });
+  // Cache products by id so onclick can look them up safely
+  marketProductsCache = {};
+  (products || []).forEach(p => { marketProductsCache[p.id] = p; });
   renderMarketCatFilter(products || []);
   renderMarketGrid(products || []);
 }
@@ -971,7 +976,7 @@ function renderMarketGrid(products) {
       ? `<img src="${p.image_data}" alt="${p.name}" />`
       : `<span style="font-size:2.5rem;">${CAT_EMOJI[p.category]||'📦'}</span>`;
     const outOfStock = p.stock <= 0;
-    return `<div class="product-card ${outOfStock?'out-of-stock':''}" onclick="${outOfStock?'':'openBuyModal('+JSON.stringify(JSON.stringify(p))+')'}" >
+    return `<div class="product-card ${outOfStock?'out-of-stock':''}" data-product-id="${p.id}" onclick="handleProductClick(this)">
       <div class="product-img">${imgHtml}</div>
       <div class="product-cat-badge">${CAT_LABELS[p.category]||p.category}</div>
       <div class="product-info">
@@ -983,9 +988,16 @@ function renderMarketGrid(products) {
   }).join('');
 }
 
+function handleProductClick(el) {
+  const id = el.getAttribute('data-product-id');
+  const p = marketProductsCache[id];
+  if (!p || p.stock <= 0) return;
+  openBuyModal(p);
+}
+
 // ─── BUY MODAL ────────────────────────────────────────────────────────────────
-function openBuyModal(productJson) {
-  currentBuyProduct = JSON.parse(productJson);
+function openBuyModal(product) {
+  currentBuyProduct = product;
   buyQty = 1;
   const p = currentBuyProduct;
   const imgDiv = document.getElementById('buy-modal-img');
