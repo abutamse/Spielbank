@@ -285,7 +285,6 @@
   .inv-meta { font-size: 0.67rem; color: rgba(245,230,200,0.4); margin-bottom: 6px; }
   .inv-action { width: 100%; padding: 6px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-family: 'DM Mono', monospace; font-weight: 700; letter-spacing: 0.5px; }
 
-  /* ── SAMSUNG-SAFE IMAGE UPLOAD ── */
   .img-upload-area {
     border: 2px dashed var(--gold-dark); border-radius: 8px;
     padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s;
@@ -295,7 +294,6 @@
   .img-upload-area:hover { border-color: var(--gold); color: var(--cream); }
   .img-upload-area.has-img { padding: 4px; }
   .img-upload-area img { max-height: 120px; border-radius: 4px; max-width: 100%; }
-  /* Samsung: label trick statt onclick */
   .img-upload-label { display: block; cursor: pointer; width: 100%; }
   #upload-img-input { display: none; }
   .price-edit-input {
@@ -507,7 +505,6 @@
       <div id="shop-upload" style="display:none">
         <h3>Neues Produkt hochladen</h3>
         <div class="label">Produktbild</div>
-        <!-- Samsung-Fix: label statt onclick auf div -->
         <label class="img-upload-label" for="upload-img-input">
           <div class="img-upload-area" id="upload-img-area">
             <span style="font-size:1.8rem;">📷</span>
@@ -706,7 +703,7 @@ let calcTotal     = 0;
 let realtimeSubs  = [];
 let currentBuyProduct = null;
 let buyQty        = 1;
-let buyInProgress = false; // ← FIX: verhindert Doppelklick
+let buyInProgress = false;
 let currentUseItem = null;
 let marketFilter  = 'alle';
 let invFilter     = 'alle';
@@ -904,7 +901,6 @@ async function sendMoney() {
   if (!amount || amount <= 0) return showStatus('transfer-status','Betrag eingeben!', false);
   if (amount > currentUser.balance) return showStatus('transfer-status','Nicht genug Guthaben!', false);
 
-  // Frisches Guthaben holen bevor wir abbuchen
   const { data: freshSelf } = await db.from('accounts').select('balance').eq('id', currentUser.id).single();
   if (!freshSelf) return showStatus('transfer-status','Fehler beim Laden des Kontos!', false);
   if (amount > freshSelf.balance) return showStatus('transfer-status','Nicht genug Guthaben!', false);
@@ -1055,7 +1051,6 @@ function closeBuyModal() {
 }
 
 async function confirmBuy() {
-  // ── FIX: Doppelklick-Schutz ──
   if (buyInProgress) return;
   const p = currentBuyProduct;
   if (!p) return;
@@ -1087,7 +1082,6 @@ async function confirmBuy() {
     // ── Käufer-Guthaben abziehen ──
     const { error: buyerErr } = await db.from('accounts').update({ balance: freshSelf.balance - total }).eq('id', currentUser.id);
     if (buyerErr) {
-      // Rollback Lager
       await db.from('products').update({ stock: freshProd.stock }).eq('id', p.id);
       throw new Error('Zahlung fehlgeschlagen: ' + buyerErr.message);
     }
@@ -1106,58 +1100,42 @@ async function confirmBuy() {
       note: `Kauf: ${p.name} x${buyQty}`
     });
 
-    // ── Inventar hinzufügen ──
-    // Erst die Spalten der inventory-Tabelle prüfen, dann gezielt einfügen
+    // ── INVENTAR HINZUFÜGEN (Fix: direkter Insert ohne Test-Insert) ──
     const maxUses = CAT_USES[p.category] || null;
 
-    // Schritt 1: Minimaler Test-Insert um Spalten zu validieren
-    const testPayload = { owner: currentUser.name, name: p.name };
-    const { error: testErr } = await db.from('inventory').insert(testPayload).select('id').single();
-
-    if (testErr) {
-      // Tabelle nicht erreichbar oder owner/name Spalte fehlt
-      debugLog('INV_TEST_ERR', testErr);
-      showStatus('buy-modal-status', `⚠️ Inventar-Tabellenfehler: ${testErr.message} (Code: ${testErr.code})`, false);
-      // Kauf war trotzdem erfolgreich, also State updaten
-      currentUser.balance = freshSelf.balance - total;
-      renderDashboard(); closeBuyModal();
-      showNotif(`🛒 Kauf ok! Aber Inventar-Fehler – siehe Debug-Log`);
-      if (marketSeller) loadMarketProducts(marketSeller);
-      renderTxList();
-      return; // früh raus
+    const allInvItems = [];
+    for (let i = 0; i < buyQty; i++) {
+      const invItem = {
+        owner: currentUser.name,
+        name: p.name,
+        category: p.category,
+        active: true,
+      };
+      if (p.id)          invItem.product_id = p.id;
+      if (p.price)       invItem.price_paid = p.price;
+      if (p.image_data)  invItem.image_data = p.image_data;
+      if (maxUses !== null) {
+        invItem.uses_left = maxUses;
+        invItem.max_uses  = maxUses;
+      }
+      allInvItems.push(invItem);
     }
 
-    // Test-Insert hat funktioniert → die ID zurückholen und mit echten Daten updaten
-    // (Supabase gibt bei single() die eingefügte Zeile zurück wenn select() dabei ist)
-    // Wir löschen den Test-Eintrag und machen einen richtigen Insert
-    // ODER wir versuchen direkt den vollen Insert
-    await db.from('inventory').delete().eq('owner', currentUser.name).eq('name', p.name).is('product_id', null);
+    debugLog('INV_INSERT_ATTEMPT', { payload: allInvItems[0], qty: buyQty });
 
-    // Schritt 2: Echter Insert – alle Felder einzeln versuchen
-    const fullPayload = {
-      owner: currentUser.name,
-      name: p.name,
-    };
-    // Nur Felder hinzufügen die wahrscheinlich existieren
-    if (p.category !== undefined) fullPayload.category = p.category;
-    if (p.id !== undefined) fullPayload.product_id = p.id;
-    if (maxUses !== null) { fullPayload.uses_left = maxUses; fullPayload.max_uses = maxUses; }
-    fullPayload.active = true;
-    if (p.price !== undefined) fullPayload.price_paid = p.price;
-    // image_data nur wenn nicht null (spart Payload-Größe)
-    if (p.image_data) fullPayload.image_data = p.image_data;
+    const { data: invData, error: invErr } = await db
+      .from('inventory')
+      .insert(allInvItems)
+      .select('id');
 
-    const allInvItems = [];
-    for (let i = 0; i < buyQty; i++) allInvItems.push({ ...fullPayload });
-
-    const { data: invData, error: invErr } = await db.from('inventory').insert(allInvItems).select('id');
-    debugLog('INV_INSERT', { payload: fullPayload, qty: buyQty, error: invErr, data: invData });
+    debugLog('INV_INSERT_RESULT', { error: invErr, data: invData });
 
     if (invErr) {
-      showStatus('buy-modal-status', `⚠️ Inventar-Fehler: ${invErr.message} | Code: ${invErr.code} | Details: ${JSON.stringify(invErr.details)}`, false);
+      // Kauf war erfolgreich, aber Inventar-Insert fehlgeschlagen → Nutzer informieren
+      showStatus('buy-modal-status',
+        `⚠️ Kauf OK, aber Inventar-Fehler: ${invErr.message} (Code: ${invErr.code}) — Bitte Debug-Log prüfen!`, false);
       currentUser.balance = freshSelf.balance - total;
       renderDashboard();
-      // Modal NICHT schließen damit Fehler sichtbar bleibt
       buyInProgress = false;
       setBtnLoading('confirm-buy-btn', false, '🛒 Kaufen');
       if (marketSeller) loadMarketProducts(marketSeller);
@@ -1165,7 +1143,7 @@ async function confirmBuy() {
       return;
     }
 
-    // ── Lokalen State aktualisieren ──
+    // ── Alles erfolgreich ──
     currentUser.balance = freshSelf.balance - total;
     renderDashboard();
     closeBuyModal();
@@ -1243,13 +1221,9 @@ async function deleteProduct(id) {
   loadMyProducts();
 }
 
-// ─── IMAGE UPLOAD (Samsung-Fix) ────────────────────────────────────────────────
-// Samsung Internet hat Probleme mit onclick auf div → wir nutzen <label for="input">
-// Außerdem: EXIF-Rotation über canvas korrigieren, HEIC-Fallback
-
+// ─── IMAGE UPLOAD ────────────────────────────────────────────────────────────
 function compressImage(file, maxWidth, quality) {
   return new Promise((resolve) => {
-    // Blob URL statt FileReader – stabiler auf Samsung
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
@@ -1258,7 +1232,6 @@ function compressImage(file, maxWidth, quality) {
       let w = img.naturalWidth || img.width;
       let h = img.naturalHeight || img.height;
       if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
-      // Mindestgröße sicherstellen
       if (w < 1 || h < 1) { resolve(null); return; }
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
@@ -1282,7 +1255,6 @@ async function handleImgUpload(e) {
   area.innerHTML = '<span style="font-size:1.2rem;">⏳</span><span>Bild wird verarbeitet...</span>';
   area.classList.remove('has-img');
 
-  // Dateityp prüfen
   if (!file.type.startsWith('image/')) {
     area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Nur Bilder erlaubt!</span>';
     return;
@@ -1292,14 +1264,12 @@ async function handleImgUpload(e) {
 
   if (!data) {
     area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Fehler beim Laden. Anderes Bild versuchen.</span>';
-    // Input zurücksetzen damit nochmal gewählt werden kann
     e.target.value = '';
     return;
   }
 
   const kb = Math.round(data.length * 0.75 / 1024);
   if (kb > 700) {
-    // Nochmal mit niedrigerer Qualität versuchen
     const data2 = await compressImage(file, 400, 0.5);
     if (data2) {
       document.getElementById('upload-img-data').value = data2;
@@ -1348,7 +1318,6 @@ async function uploadProduct() {
   showStatus('upload-status','✅ Produkt hochgeladen!', true);
   showNotif('📤 ' + name + ' in deinen Shop eingestellt!');
 
-  // Reset form
   document.getElementById('upload-name').value     = '';
   document.getElementById('upload-category').value = '';
   document.getElementById('upload-price').value    = '';
@@ -1474,7 +1443,7 @@ async function openUseModal(invId) {
   const usesBar = document.getElementById('use-modal-uses');
   if (item.category === 'kleidung' && item.max_uses) {
     const uses = item.uses_left || 0;
-    usesBar.innerHTML = Array(item.max_uses).fill(0).map((_,i) => `<span class="use-dot ${i >= uses ? 'used' : ''}"></span>`).join('');
+    usesBar.innerHTML = Array(item.max_uses||10).fill(0).map((_,i) => `<span class="use-dot ${i >= uses ? 'used' : ''}"></span>`).join('');
     usesBar.style.display = 'flex';
   } else { usesBar.style.display = 'none'; }
 
@@ -1529,7 +1498,6 @@ function calcInput(v) {
 }
 function calcEquals() {
   try {
-    // eslint-disable-next-line no-new-func
     let r = Function('"use strict";return (' + calcExpr + ')')();
     r = Math.round(r * 100) / 100; calcExpr = String(r); calcTotal = r;
     document.getElementById('calc-display').textContent = fmt(r); updateCalcNote();
@@ -1604,7 +1572,6 @@ async function acceptPaymentRequest() {
   const { data: req } = await db.from('payment_requests').select('*').eq('id', pendingReqId).single();
   if (!req) return;
 
-  // Frisches Guthaben holen
   const { data: freshSelf } = await db.from('accounts').select('balance').eq('id', currentUser.id).single();
   const balance = freshSelf ? freshSelf.balance : currentUser.balance;
 
