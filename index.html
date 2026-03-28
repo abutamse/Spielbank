@@ -1078,14 +1078,14 @@ function switchShopTab(t) {
 }
 
 async function loadMyProducts() {
-  const { data: prods } = await db.from('products').select('*').eq('seller', currentUser.name).order('created_at', { ascending: false });
+  const { data: prods } = await db.from('products').select('*').eq('seller', currentUser.name).eq('active', true).order('created_at', { ascending: false });
   const div = document.getElementById('my-products-list');
   if (!prods || !prods.length) { div.innerHTML = '<div class="empty-state"><div class="icon">📦</div>Noch keine Produkte hochgeladen.</div>'; return; }
   div.innerHTML = prods.map(p => {
     const imgHtml = p.image_data
       ? `<div class="my-product-thumb"><img src="${p.image_data}" /></div>`
       : `<div class="my-product-thumb">${CAT_EMOJI[p.category]||'📦'}</div>`;
-    return `<div class="my-product-row">
+    return `<div class="my-product-row" id="prodrow-${p.id}">
       ${imgHtml}
       <div class="my-product-info">
         <div class="my-product-name">${p.name}</div>
@@ -1098,7 +1098,7 @@ async function loadMyProducts() {
       </div>
       <div class="my-product-actions">
         <button class="btn btn-outline btn-sm" onclick="addStock('${p.id}', ${p.stock})">+Lager</button>
-        <button class="btn btn-red btn-sm" onclick="deleteProduct('${p.id}')">✕</button>
+        <button class="btn btn-red btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button>
       </div>
     </div>`;
   }).join('');
@@ -1119,8 +1119,16 @@ async function addStock(id, current) {
 }
 
 async function deleteProduct(id) {
-  if (!confirm('Produkt wirklich löschen?')) return;
-  await db.from('products').update({ active: false }).eq('id', id);
+  // Immediately remove from DOM for instant feedback
+  const row = document.getElementById('prodrow-' + id);
+  if (row) row.style.opacity = '0.3';
+  const { error } = await db.from('products').delete().eq('id', id).eq('seller', currentUser.name);
+  if (error) {
+    // Fallback: try setting active=false
+    const { error: e2 } = await db.from('products').update({ active: false }).eq('id', id);
+    if (e2) { showNotif('❌ Löschen fehlgeschlagen: ' + e2.message); if(row) row.style.opacity='1'; return; }
+  }
+  showNotif('🗑️ Produkt gelöscht!');
   loadMyProducts();
 }
 
@@ -1312,14 +1320,16 @@ async function useItem() {
   if (!currentUseItem) return;
   const item = currentUseItem;
   if (item.category === 'essen') {
-    await db.from('inventory').update({ active: false }).eq('id', item.id);
+    const { error } = await db.from('inventory').delete().eq('id', item.id).eq('owner', currentUser.name);
+    if (error) await db.from('inventory').update({ active: false }).eq('id', item.id);
     closeUseModal();
     showNotif(`🍽️ Lecker! ${item.name} gegessen!`);
     renderInventar();
   } else if (item.category === 'kleidung') {
     const usesLeft = (item.uses_left || 10) - 1;
     if (usesLeft <= 0) {
-      await db.from('inventory').update({ uses_left: 0, active: false }).eq('id', item.id);
+      const { error } = await db.from('inventory').delete().eq('id', item.id).eq('owner', currentUser.name);
+      if (error) await db.from('inventory').update({ uses_left: 0, active: false }).eq('id', item.id);
       closeUseModal();
       showNotif(`👕 ${item.name} ist verschlissen und verschwunden!`);
     } else {
