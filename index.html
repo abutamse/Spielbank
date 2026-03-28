@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🎰 Spielbank</title>
+<title>🎰 Spielbank & Marktplatz</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -18,6 +18,7 @@
     --cream: #f5e6c8;
     --red: #c0392b;
     --shadow: rgba(0,0,0,0.6);
+    --blue: #1a6e9c;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -31,20 +32,20 @@
   }
   header {
     text-align: center;
-    padding: 30px 20px 20px;
+    padding: 24px 20px 16px;
     border-bottom: 1px solid var(--gold-dark);
     background: linear-gradient(180deg, #0a1810 0%, transparent 100%);
     position: relative;
   }
   header h1 {
     font-family: 'Playfair Display', serif;
-    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-size: clamp(1.8rem, 5vw, 3rem);
     font-weight: 900;
     color: var(--gold);
     text-shadow: 0 0 30px rgba(201,168,76,0.5), 2px 2px 0 var(--gold-dark);
     letter-spacing: 4px;
   }
-  header p { color: rgba(245,230,200,0.5); font-size: 0.75rem; letter-spacing: 3px; margin-top: 6px; }
+  header p { color: rgba(245,230,200,0.5); font-size: 0.7rem; letter-spacing: 3px; margin-top: 4px; }
   .device-badge {
     position: absolute; top: 15px; right: 15px;
     background: rgba(201,168,76,0.15);
@@ -63,15 +64,15 @@
     margin-right: 5px;
     vertical-align: middle;
   }
-  .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+  .container { max-width: 960px; margin: 0 auto; padding: 16px; }
   .screen { display: none; }
   .screen.active { display: block; }
   .card {
     background: linear-gradient(135deg, var(--green-mid) 0%, var(--felt) 100%);
     border: 1px solid var(--gold-dark);
     border-radius: 12px;
-    padding: 28px;
-    margin-bottom: 20px;
+    padding: 22px;
+    margin-bottom: 16px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.2);
     position: relative;
     overflow: hidden;
@@ -81,27 +82,27 @@
     position: absolute; top: 0; left: 0; right: 0; height: 1px;
     background: linear-gradient(90deg, transparent, var(--gold), transparent);
   }
-  .card h2 { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.3rem; margin-bottom: 20px; letter-spacing: 2px; }
-  .card h3 { font-family: 'Playfair Display', serif; color: var(--gold-light); font-size: 1rem; margin-bottom: 12px; letter-spacing: 1px; }
-  input, select {
+  .card h2 { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.2rem; margin-bottom: 16px; letter-spacing: 2px; }
+  .card h3 { font-family: 'Playfair Display', serif; color: var(--gold-light); font-size: 0.95rem; margin-bottom: 10px; letter-spacing: 1px; }
+  input, select, textarea {
     width: 100%;
     background: rgba(0,0,0,0.4);
     border: 1px solid var(--gold-dark);
     border-radius: 6px;
     color: var(--cream);
-    padding: 12px 14px;
+    padding: 10px 12px;
     font-family: 'DM Mono', monospace;
-    font-size: 0.9rem;
-    margin-bottom: 12px;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
     outline: none;
     transition: border-color 0.2s;
   }
-  input:focus, select:focus { border-color: var(--gold); }
-  input::placeholder { color: rgba(245,230,200,0.3); }
+  input:focus, select:focus, textarea:focus { border-color: var(--gold); }
+  input::placeholder, textarea::placeholder { color: rgba(245,230,200,0.3); }
   select option { background: #1a3a2a; }
   .btn {
-    display: inline-block; padding: 12px 24px; border-radius: 6px; border: none;
-    cursor: pointer; font-family: 'DM Mono', monospace; font-size: 0.85rem;
+    display: inline-block; padding: 10px 20px; border-radius: 6px; border: none;
+    cursor: pointer; font-family: 'DM Mono', monospace; font-size: 0.8rem;
     font-weight: 500; letter-spacing: 1px; transition: all 0.2s; text-transform: uppercase;
   }
   .btn-gold { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--green-dark); font-weight: 700; }
@@ -113,110 +114,85 @@
   .btn-red:hover { filter: brightness(1.15); }
   .btn-green { background: linear-gradient(135deg, #0d5c34, #1a9c58); color: white; }
   .btn-green:hover { filter: brightness(1.15); }
-  .btn-full { width: 100%; text-align: center; margin-bottom: 10px; }
-  .btn-sm { padding: 8px 14px; font-size: 0.75rem; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .btn-blue { background: linear-gradient(135deg, #0d3a5c, var(--blue)); color: white; }
+  .btn-full { width: 100%; text-align: center; margin-bottom: 8px; }
+  .btn-sm { padding: 6px 12px; font-size: 0.72rem; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media(max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
-  .balance-display { text-align: center; padding: 20px; margin-bottom: 20px; }
+  .balance-display { text-align: center; padding: 16px; margin-bottom: 16px; }
   .balance-amount {
     font-family: 'Playfair Display', serif;
-    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    font-size: clamp(2.2rem, 7vw, 4rem);
     font-weight: 900; color: var(--gold);
     text-shadow: 0 0 20px rgba(201,168,76,0.4); line-height: 1;
   }
-  .balance-label { font-size: 0.7rem; letter-spacing: 3px; color: rgba(245,230,200,0.4); margin-top: 6px; }
-  .user-name-display { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--cream); margin-bottom: 4px; }
-  .status-msg { padding: 10px 14px; border-radius: 6px; font-size: 0.8rem; margin-bottom: 12px; display: none; letter-spacing: 0.5px; }
+  .balance-label { font-size: 0.7rem; letter-spacing: 3px; color: rgba(245,230,200,0.4); margin-top: 4px; }
+  .user-name-display { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--cream); margin-bottom: 4px; }
+  .status-msg { padding: 8px 12px; border-radius: 6px; font-size: 0.78rem; margin-bottom: 10px; display: none; letter-spacing: 0.5px; }
   .status-msg.show { display: block; }
   .status-ok { background: rgba(26,156,88,0.2); border: 1px solid #1a9c58; color: #6dffb0; }
   .status-err { background: rgba(192,57,43,0.2); border: 1px solid var(--red); color: #ff8080; }
-  .tx-list { max-height: 220px; overflow-y: auto; }
+  .tx-list { max-height: 200px; overflow-y: auto; }
   .tx-list::-webkit-scrollbar { width: 4px; }
   .tx-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
   .tx-list::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 2px; }
-  .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(201,168,76,0.1); font-size: 0.78rem; }
+  .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(201,168,76,0.1); font-size: 0.75rem; }
   .tx-item:last-child { border-bottom: none; }
   .tx-plus { color: #6dffb0; }
   .tx-minus { color: #ff8080; }
-  .tx-time { color: rgba(245,230,200,0.3); font-size: 0.68rem; }
-  .calc-display {
-    background: rgba(0,0,0,0.6); border: 1px solid var(--gold-dark); border-radius: 6px;
-    padding: 12px 16px; font-family: 'Playfair Display', serif; font-size: 1.8rem;
-    color: var(--gold-light); text-align: right; min-height: 60px; margin-bottom: 4px;
-    letter-spacing: 1px; word-break: break-all;
-  }
-  .calc-note-display {
-    background: rgba(0,0,0,0.3); border: 1px solid rgba(201,168,76,0.2); border-radius: 6px;
-    padding: 8px 12px; font-size: 0.75rem; color: rgba(245,230,200,0.6);
-    min-height: 32px; margin-bottom: 10px; font-style: italic;
-  }
-  .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-  .calc-btn {
-    padding: 14px 0; border: none; border-radius: 6px; cursor: pointer;
-    font-family: 'DM Mono', monospace; font-size: 1rem; font-weight: 500;
-    transition: all 0.15s; background: rgba(255,255,255,0.06); color: var(--cream);
-    border: 1px solid rgba(255,255,255,0.08);
-  }
-  .calc-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.03); }
-  .calc-btn:active { transform: scale(0.97); }
-  .calc-btn.op { background: rgba(201,168,76,0.15); color: var(--gold); border-color: rgba(201,168,76,0.2); }
-  .calc-btn.eq { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--green-dark); font-weight: 700; border-color: var(--gold); }
-  .calc-btn.clear { background: rgba(192,57,43,0.25); color: #ff8080; border-color: rgba(192,57,43,0.3); }
-  .calc-btn.wide { grid-column: span 2; }
+  .tx-time { color: rgba(245,230,200,0.3); font-size: 0.65rem; }
   .connected-device {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 14px; border: 1px solid rgba(201,168,76,0.15);
-    border-radius: 8px; margin-bottom: 8px; font-size: 0.8rem;
+    padding: 8px 12px; border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 8px; margin-bottom: 6px; font-size: 0.78rem;
     background: rgba(255,255,255,0.03);
   }
   .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
   .dot-green { background: #1a9c58; box-shadow: 0 0 6px #1a9c58; animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-  .tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
   .tab-btn {
-    padding: 8px 16px; border: 1px solid var(--gold-dark); border-radius: 20px;
+    padding: 7px 14px; border: 1px solid var(--gold-dark); border-radius: 20px;
     background: transparent; color: rgba(245,230,200,0.5); cursor: pointer;
-    font-family: 'DM Mono', monospace; font-size: 0.75rem; letter-spacing: 1px; transition: all 0.2s;
+    font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 1px; transition: all 0.2s;
   }
   .tab-btn.active { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--green-dark); font-weight: 700; border-color: var(--gold); }
   .modal-overlay {
     display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-    z-index: 100; align-items: center; justify-content: center;
+    z-index: 100; align-items: center; justify-content: center; padding: 16px;
   }
   .modal-overlay.show { display: flex; }
   .modal {
     background: linear-gradient(135deg, var(--green-mid), var(--felt));
-    border: 2px solid var(--gold); border-radius: 16px; padding: 32px;
-    max-width: 380px; width: 90%;
+    border: 2px solid var(--gold); border-radius: 16px; padding: 28px;
+    max-width: 420px; width: 100%;
     box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(201,168,76,0.2);
     position: relative; animation: modalIn 0.3s ease;
+    max-height: 90vh; overflow-y: auto;
   }
   @keyframes modalIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .modal h2 { font-family: 'Playfair Display', serif; color: var(--gold); margin-bottom: 16px; }
-  .modal-amount { font-family: 'Playfair Display', serif; font-size: 3rem; color: var(--gold); text-align: center; margin: 16px 0; }
+  .modal h2 { font-family: 'Playfair Display', serif; color: var(--gold); margin-bottom: 14px; }
+  .modal-amount { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); text-align: center; margin: 12px 0; }
   .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: var(--cream); cursor: pointer; font-size: 1.4rem; }
-  .divider { border: none; border-top: 1px solid rgba(201,168,76,0.15); margin: 20px 0; }
-  .chip-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-  .chip { padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; border: 1px solid; cursor: pointer; transition: all 0.15s; font-family: 'DM Mono', monospace; }
+  .divider { border: none; border-top: 1px solid rgba(201,168,76,0.15); margin: 16px 0; }
+  .chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { padding: 5px 12px; border-radius: 20px; font-size: 0.72rem; border: 1px solid; cursor: pointer; transition: all 0.15s; font-family: 'DM Mono', monospace; }
   .chip-gold { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.1); }
   .chip-gold:hover { background: rgba(201,168,76,0.25); transform: translateY(-2px); }
+  .chip-active { background: rgba(201,168,76,0.3) !important; border-color: var(--gold-light) !important; }
   #notification-bar {
     position: fixed; top: 0; left: 0; right: 0;
     background: linear-gradient(135deg, var(--gold-dark), var(--gold));
-    color: var(--green-dark); text-align: center; padding: 14px;
-    font-family: 'DM Mono', monospace; font-weight: 700; font-size: 0.85rem;
+    color: var(--green-dark); text-align: center; padding: 12px;
+    font-family: 'DM Mono', monospace; font-weight: 700; font-size: 0.82rem;
     z-index: 200; transform: translateY(-100%); transition: transform 0.4s ease; letter-spacing: 1px;
   }
   #notification-bar.show { transform: translateY(0); }
-  .label { font-size: 0.7rem; letter-spacing: 2px; color: rgba(245,230,200,0.4); text-transform: uppercase; margin-bottom: 6px; }
-  .separator { text-align: center; color: rgba(245,230,200,0.2); margin: 14px 0; font-size: 0.7rem; letter-spacing: 2px; }
-  .item-list { margin-top: 10px; }
-  .item-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(201,168,76,0.08); font-size: 0.78rem; }
-  .item-row button { background: none; border: none; color: #ff8080; cursor: pointer; font-size: 0.9rem; padding: 0 4px; }
+  .label { font-size: 0.68rem; letter-spacing: 2px; color: rgba(245,230,200,0.4); text-transform: uppercase; margin-bottom: 5px; }
   .pass-box {
     background: rgba(0,0,0,0.5); border: 2px solid var(--gold); border-radius: 8px;
-    padding: 14px; font-family: 'Playfair Display', serif; font-size: 1.5rem;
-    color: var(--gold); text-align: center; letter-spacing: 6px; margin-bottom: 16px;
+    padding: 12px; font-family: 'Playfair Display', serif; font-size: 1.4rem;
+    color: var(--gold); text-align: center; letter-spacing: 6px; margin-bottom: 14px;
     user-select: all; cursor: pointer;
   }
   .loading-overlay {
@@ -229,13 +205,162 @@
     border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── SHOP STYLES ── */
+  .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  @media(max-width: 480px) { .shop-grid { grid-template-columns: repeat(2, 1fr); } }
+  .product-card {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .product-card:hover { border-color: var(--gold); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .product-img {
+    width: 100%; height: 130px; object-fit: cover;
+    background: rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.5rem;
+  }
+  .product-img img { width: 100%; height: 100%; object-fit: cover; }
+  .product-info { padding: 10px; }
+  .product-name { font-family: 'Playfair Display', serif; font-size: 0.88rem; color: var(--cream); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .product-price { color: var(--gold); font-size: 0.82rem; font-weight: 700; }
+  .product-stock { font-size: 0.68rem; color: rgba(245,230,200,0.4); margin-top: 2px; }
+  .product-cat-badge {
+    position: absolute; top: 6px; right: 6px;
+    background: rgba(0,0,0,0.7); border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 10px; padding: 2px 7px; font-size: 0.6rem; color: var(--gold);
+  }
+  .out-of-stock { opacity: 0.5; }
+  .out-of-stock::after {
+    content: 'AUSVERKAUFT';
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; letter-spacing: 2px; color: #ff8080;
+    border-radius: 10px;
+  }
+  .cat-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .cat-chip {
+    padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; border: 1px solid rgba(201,168,76,0.3);
+    cursor: pointer; transition: all 0.15s; color: rgba(245,230,200,0.6); background: transparent;
+    font-family: 'DM Mono', monospace;
+  }
+  .cat-chip.active { background: rgba(201,168,76,0.2); border-color: var(--gold); color: var(--gold); }
+  .cat-chip:hover { border-color: var(--gold); color: var(--gold); }
+  .seller-section { margin-bottom: 20px; }
+  .seller-header {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 8px; cursor: pointer; margin-bottom: 10px;
+    transition: background 0.2s;
+  }
+  .seller-header:hover { background: rgba(201,168,76,0.14); }
+  .seller-name { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--cream); }
+  .seller-count { font-size: 0.7rem; color: rgba(245,230,200,0.4); }
+  .seller-chevron { margin-left: auto; color: var(--gold); font-size: 0.8rem; transition: transform 0.2s; }
+  .seller-chevron.open { transform: rotate(180deg); }
+
+  /* MY SHOP */
+  .my-product-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px; border: 1px solid rgba(201,168,76,0.12);
+    border-radius: 8px; margin-bottom: 8px; background: rgba(0,0,0,0.2);
+  }
+  .my-product-thumb {
+    width: 48px; height: 48px; border-radius: 6px; object-fit: cover;
+    background: rgba(0,0,0,0.4); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+    overflow: hidden;
+  }
+  .my-product-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .my-product-info { flex: 1; min-width: 0; }
+  .my-product-name { font-size: 0.82rem; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .my-product-meta { font-size: 0.7rem; color: rgba(245,230,200,0.4); }
+  .my-product-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* INVENTORY */
+  .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .inv-card {
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 8px; overflow: hidden; transition: border-color 0.2s;
+  }
+  .inv-card:hover { border-color: rgba(201,168,76,0.4); }
+  .inv-img {
+    width: 100%; height: 100px; object-fit: cover;
+    background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 2rem;
+    overflow: hidden;
+  }
+  .inv-img img { width: 100%; height: 100%; object-fit: cover; }
+  .inv-info { padding: 8px; }
+  .inv-name { font-size: 0.8rem; color: var(--cream); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .inv-meta { font-size: 0.67rem; color: rgba(245,230,200,0.4); margin-bottom: 6px; }
+  .inv-action { width: 100%; padding: 6px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-family: 'DM Mono', monospace; font-weight: 700; letter-spacing: 0.5px; }
+
+  /* IMAGE UPLOAD */
+  .img-upload-area {
+    border: 2px dashed var(--gold-dark); border-radius: 8px;
+    padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s;
+    margin-bottom: 10px; color: rgba(245,230,200,0.4); font-size: 0.78rem;
+    min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  }
+  .img-upload-area:hover { border-color: var(--gold); color: var(--cream); }
+  .img-upload-area.has-img { padding: 4px; }
+  .img-upload-area img { max-height: 120px; border-radius: 4px; }
+  #upload-img-input { display: none; }
+  .price-edit-input {
+    width: 80px; background: rgba(0,0,0,0.5); border: 1px solid var(--gold-dark);
+    border-radius: 4px; color: var(--gold); padding: 4px 8px; font-size: 0.8rem;
+    font-family: 'DM Mono', monospace; text-align: right;
+  }
+  .resell-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    background: rgba(26,110,156,0.3); border: 1px solid rgba(26,110,156,0.5);
+    color: #6dbcff; font-size: 0.65rem; margin-left: 6px;
+  }
+  .uses-bar {
+    display: flex; gap: 2px; margin-top: 4px;
+  }
+  .use-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(201,168,76,0.4); flex-shrink: 0;
+  }
+  .use-dot.used { background: rgba(201,168,76,0.1); }
+  .empty-state { text-align: center; padding: 30px; color: rgba(245,230,200,0.3); font-size: 0.8rem; }
+  .empty-state .icon { font-size: 2rem; margin-bottom: 8px; }
+
+  /* CALC */
+  .calc-display {
+    background: rgba(0,0,0,0.6); border: 1px solid var(--gold-dark); border-radius: 6px;
+    padding: 10px 14px; font-family: 'Playfair Display', serif; font-size: 1.6rem;
+    color: var(--gold-light); text-align: right; min-height: 54px; margin-bottom: 4px;
+    letter-spacing: 1px; word-break: break-all;
+  }
+  .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .calc-btn {
+    padding: 12px 0; border: none; border-radius: 6px; cursor: pointer;
+    font-family: 'DM Mono', monospace; font-size: 0.95rem; font-weight: 500;
+    transition: all 0.15s; background: rgba(255,255,255,0.06); color: var(--cream);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .calc-btn:hover { background: rgba(255,255,255,0.12); }
+  .calc-btn.op { background: rgba(201,168,76,0.15); color: var(--gold); border-color: rgba(201,168,76,0.2); }
+  .calc-btn.eq { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--green-dark); font-weight: 700; }
+  .calc-btn.clear { background: rgba(192,57,43,0.25); color: #ff8080; }
+  .calc-btn.wide { grid-column: span 2; }
+  .item-list { margin-top: 8px; }
+  .item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(201,168,76,0.08); font-size: 0.75rem; }
+  .item-row button { background: none; border: none; color: #ff8080; cursor: pointer; font-size: 0.85rem; padding: 0 4px; }
 </style>
 </head>
 <body>
 
 <div id="notification-bar">🔔</div>
 
-<!-- LOADING -->
 <div class="loading-overlay" id="loading-overlay">
   <div class="loading-spinner"></div>
   <div style="color:var(--gold);font-family:'Playfair Display',serif;font-size:1.2rem;letter-spacing:3px;">SPIELBANK</div>
@@ -246,33 +371,31 @@
 <div id="screen-login" class="screen">
   <header>
     <h1>🎰 SPIELBANK</h1>
-    <p><span class="realtime-dot"></span>LIVE · ECHTZEIT · MULTI-GERÄT</p>
+    <p><span class="realtime-dot"></span>MARKTPLATZ · LIVE · ECHTZEIT</p>
   </header>
   <div class="container">
-    <div class="card" style="max-width:440px;margin:30px auto;">
+    <div class="card" style="max-width:440px;margin:24px auto;">
       <div class="tabs">
         <button class="tab-btn active" id="auth-tab-reg" onclick="switchAuthTab('register')">Konto erstellen</button>
         <button class="tab-btn" id="auth-tab-login" onclick="switchAuthTab('login')">Einloggen</button>
       </div>
-
       <div id="tab-register">
         <h3>Neues Konto erstellen</h3>
         <div class="label">Name</div>
         <input type="text" id="reg-name" placeholder="Dein Name..." />
-        <div class="label">Passwort (andere verbinden sich damit)</div>
+        <div class="label">Passwort</div>
         <input type="text" id="reg-pass" placeholder="Passwort wählen..." />
         <div class="label">Startguthaben (€)</div>
         <div class="chip-row">
-          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=50">50 €</span>
-          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=100">100 €</span>
-          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=200">200 €</span>
-          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=500">500 €</span>
+          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=50">50€</span>
+          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=100">100€</span>
+          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=200">200€</span>
+          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=500">500€</span>
         </div>
         <input type="number" id="reg-geld" placeholder="Oder selbst eingeben..." min="0" />
         <div id="reg-status" class="status-msg"></div>
         <button class="btn btn-gold btn-full" id="reg-btn" onclick="registerAccount()">Konto erstellen</button>
       </div>
-
       <div id="tab-login" style="display:none">
         <h3>Einloggen</h3>
         <div class="label">Name</div>
@@ -290,20 +413,22 @@
 <div id="screen-dashboard" class="screen">
   <header>
     <h1>🎰 SPIELBANK</h1>
-    <p><span class="realtime-dot"></span>LIVE · ECHTZEIT</p>
+    <p><span class="realtime-dot"></span>LIVE · MARKTPLATZ</p>
     <div class="device-badge" id="device-badge">—</div>
   </header>
   <div class="container">
-
     <div class="card">
       <div class="balance-display">
         <div class="user-name-display" id="dash-name">—</div>
         <div class="balance-amount" id="dash-balance">0,00 €</div>
         <div class="balance-label">Aktuelles Guthaben</div>
       </div>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
         <button class="btn btn-outline btn-sm" onclick="showTab('verbinden')">🔗 Verbinden</button>
         <button class="btn btn-outline btn-sm" onclick="showTab('transfer')">💸 Senden</button>
+        <button class="btn btn-outline btn-sm" onclick="showTab('marktplatz')">🛒 Markt</button>
+        <button class="btn btn-outline btn-sm" onclick="showTab('meinshop')">🏪 Mein Shop</button>
+        <button class="btn btn-outline btn-sm" onclick="showTab('inventar')">🎒 Inventar</button>
         <button class="btn btn-outline btn-sm" onclick="showTab('rechner')">🧮 Rechner</button>
         <button class="btn btn-outline btn-sm" onclick="showTab('verlauf')">📜 Verlauf</button>
         <button class="btn btn-red btn-sm" onclick="logout()">Abmelden</button>
@@ -313,6 +438,9 @@
     <div class="tabs">
       <button class="tab-btn active" id="nav-verbinden" onclick="showTab('verbinden')">🔗 Verbinden</button>
       <button class="tab-btn" id="nav-transfer" onclick="showTab('transfer')">💸 Transfer</button>
+      <button class="tab-btn" id="nav-marktplatz" onclick="showTab('marktplatz')">🛒 Markt</button>
+      <button class="tab-btn" id="nav-meinshop" onclick="showTab('meinshop')">🏪 Shop</button>
+      <button class="tab-btn" id="nav-inventar" onclick="showTab('inventar')">🎒 Inventar</button>
       <button class="tab-btn" id="nav-rechner" onclick="showTab('rechner')">🧮 Rechner</button>
       <button class="tab-btn" id="nav-verlauf" onclick="showTab('verlauf')">📜 Verlauf</button>
     </div>
@@ -321,20 +449,17 @@
     <div id="tab-verbinden" class="card">
       <h2>🔗 Geräte verbinden</h2>
       <h3>Dein Verbindungspasswort</h3>
-      <p style="font-size:0.78rem;color:rgba(245,230,200,0.5);margin-bottom:8px;">Zeige dieses Passwort dem anderen Gerät:</p>
-      <div class="pass-box" id="my-password-display" title="Zum Kopieren klicken">···</div>
-
+      <p style="font-size:0.75rem;color:rgba(245,230,200,0.5);margin-bottom:8px;">Zeige dieses Passwort dem anderen Gerät:</p>
+      <div class="pass-box" id="my-password-display">···</div>
       <hr class="divider">
       <h3>Mit anderem Konto verbinden</h3>
-      <p style="font-size:0.78rem;color:rgba(245,230,200,0.5);margin-bottom:12px;">Gib das Passwort des anderen Kontos ein:</p>
       <div class="label">Passwort des anderen Kontos</div>
       <input type="text" id="connect-pass" placeholder="Passwort eingeben..." />
       <div id="connect-status" class="status-msg"></div>
       <button class="btn btn-gold btn-full" onclick="connectToAccount()">🔗 Verbinden</button>
-
       <hr class="divider">
       <h3>Verbundene Konten</h3>
-      <div id="connected-list"><p style="font-size:0.78rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p></div>
+      <div id="connected-list"><p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p></div>
     </div>
 
     <!-- TRANSFER TAB -->
@@ -344,32 +469,119 @@
       <select id="transfer-to"><option value="">— Konto wählen —</option></select>
       <div class="label">Betrag (€)</div>
       <div class="chip-row">
-        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=5">5 €</span>
-        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=10">10 €</span>
-        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=20">20 €</span>
-        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=50">50 €</span>
-        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=100">100 €</span>
+        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=5">5€</span>
+        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=10">10€</span>
+        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=20">20€</span>
+        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=50">50€</span>
+        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=100">100€</span>
       </div>
       <input type="number" id="transfer-amount" placeholder="Betrag in €..." min="0.01" step="0.01" />
       <div class="label">Grund (optional)</div>
-      <input type="text" id="transfer-note" placeholder="z.B. Bier, Einsatz, Runde..." />
+      <input type="text" id="transfer-note" placeholder="z.B. Bier, Einsatz..." />
       <div id="transfer-status" class="status-msg"></div>
       <button class="btn btn-green btn-full" onclick="sendMoney()">💸 Jetzt senden</button>
+    </div>
+
+    <!-- MARKTPLATZ TAB -->
+    <div id="tab-marktplatz" class="card" style="display:none">
+      <h2>🛒 Marktplatz</h2>
+      <p style="font-size:0.75rem;color:rgba(245,230,200,0.4);margin-bottom:14px;">Wähle einen verbundenen Verkäufer, um seine Produkte zu sehen.</p>
+      <div class="label">Verkäufer auswählen</div>
+      <div id="seller-list-market">
+        <p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p>
+      </div>
+      <div id="market-products-area" style="display:none;margin-top:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <h3 id="market-seller-title" style="margin:0;">Produkte von —</h3>
+          <button class="btn btn-outline btn-sm" onclick="closeMarketSeller()">✕ Schließen</button>
+        </div>
+        <div class="cat-filter" id="market-cat-filter"></div>
+        <div class="shop-grid" id="market-product-grid"></div>
+      </div>
+    </div>
+
+    <!-- MEIN SHOP TAB -->
+    <div id="tab-meinshop" class="card" style="display:none">
+      <h2>🏪 Mein Shop</h2>
+      <div class="tabs" style="margin-bottom:14px;">
+        <button class="tab-btn active" id="shop-tab-produkte" onclick="switchShopTab('produkte')">Meine Produkte</button>
+        <button class="tab-btn" id="shop-tab-upload" onclick="switchShopTab('upload')">+ Produkt hochladen</button>
+        <button class="tab-btn" id="shop-tab-resell" onclick="switchShopTab('resell')">↩️ Weiterverkaufen</button>
+      </div>
+
+      <div id="shop-produkte">
+        <div id="my-products-list">
+          <div class="empty-state"><div class="icon">📦</div>Noch keine Produkte hochgeladen.</div>
+        </div>
+      </div>
+
+      <div id="shop-upload" style="display:none">
+        <h3>Neues Produkt hochladen</h3>
+        <div class="label">Produktbild</div>
+        <div class="img-upload-area" id="upload-img-area" onclick="document.getElementById('upload-img-input').click()">
+          <span style="font-size:1.8rem;">📷</span>
+          <span>Bild auswählen oder hier klicken</span>
+        </div>
+        <input type="file" id="upload-img-input" accept="image/*" onchange="handleImgUpload(event)" />
+        <input type="hidden" id="upload-img-data" />
+        <div class="label">Produktname</div>
+        <input type="text" id="upload-name" placeholder="z.B. Burger, T-Shirt, Sofa..." />
+        <div class="label">Kategorie</div>
+        <select id="upload-category">
+          <option value="">— Kategorie wählen —</option>
+          <option value="essen">🍔 Essen</option>
+          <option value="kleidung">👕 Kleidung</option>
+          <option value="wohnung">🏠 Wohnung</option>
+          <option value="moebel">🛋️ Möbel</option>
+          <option value="transport">🚗 Transportmittel</option>
+        </select>
+        <div class="label">Preis (€)</div>
+        <input type="number" id="upload-price" placeholder="0.00" min="0.01" step="0.01" />
+        <div class="label">Anzahl / Lagerbestand</div>
+        <input type="number" id="upload-stock" placeholder="z.B. 10" min="1" step="1" value="1" />
+        <div class="label">Beschreibung (optional)</div>
+        <textarea id="upload-desc" placeholder="Kurze Beschreibung..." rows="2" style="resize:vertical;"></textarea>
+        <div id="upload-status" class="status-msg"></div>
+        <button class="btn btn-gold btn-full" onclick="uploadProduct()">📤 Produkt hochladen</button>
+      </div>
+
+      <div id="shop-resell" style="display:none">
+        <h3>Inventar-Artikel weiterverkaufen</h3>
+        <p style="font-size:0.75rem;color:rgba(245,230,200,0.4);margin-bottom:12px;">Wähle einen gekauften Artikel aus deinem Inventar und stelle ihn in deinen Shop.</p>
+        <div id="resell-inv-list">
+          <div class="empty-state"><div class="icon">🎒</div>Kein Inventar zum Weiterverkaufen.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTAR TAB -->
+    <div id="tab-inventar" class="card" style="display:none">
+      <h2>🎒 Mein Inventar</h2>
+      <div class="cat-filter" id="inv-cat-filter">
+        <button class="cat-chip active" onclick="filterInv('alle')">Alle</button>
+        <button class="cat-chip" onclick="filterInv('essen')">🍔 Essen</button>
+        <button class="cat-chip" onclick="filterInv('kleidung')">👕 Kleidung</button>
+        <button class="cat-chip" onclick="filterInv('wohnung')">🏠 Wohnung</button>
+        <button class="cat-chip" onclick="filterInv('moebel')">🛋️ Möbel</button>
+        <button class="cat-chip" onclick="filterInv('transport')">🚗 Transport</button>
+      </div>
+      <div class="inv-grid" id="inv-grid">
+        <div class="empty-state" style="grid-column:1/-1;"><div class="icon">🎒</div>Noch nichts gekauft.</div>
+      </div>
     </div>
 
     <!-- RECHNER TAB -->
     <div id="tab-rechner" class="card" style="display:none">
       <h2>🧮 Kassenrechner</h2>
-      <p style="font-size:0.78rem;color:rgba(245,230,200,0.4);margin-bottom:14px;">Artikel eingeben → Summe berechnen → Zahlungsanfrage senden</p>
       <div class="calc-display" id="calc-display">0</div>
-      <div class="calc-note-display" id="calc-note-display">Artikel hinzufügen...</div>
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <div style="font-size:0.72rem;color:rgba(245,230,200,0.4);margin-bottom:8px;min-height:20px;" id="calc-note-display">Artikel hinzufügen...</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
         <input type="text" id="artikel-name" placeholder="Artikel..." style="margin:0;flex:2;" />
         <input type="number" id="artikel-preis" placeholder="€" style="margin:0;flex:1;" min="0" step="0.01" />
         <button class="btn btn-gold btn-sm" onclick="addArtikel()">+</button>
       </div>
       <div class="item-list" id="item-list"></div>
-      <hr class="divider" style="margin:10px 0;">
+      <hr class="divider" style="margin:8px 0;">
       <div class="calc-grid">
         <button class="calc-btn clear wide" onclick="clearCalc()">C</button>
         <button class="calc-btn op" onclick="calcInput('/')">÷</button>
@@ -399,8 +611,9 @@
     <!-- VERLAUF TAB -->
     <div id="tab-verlauf" class="card" style="display:none">
       <h2>📜 Transaktionsverlauf</h2>
-      <div class="tx-list" id="tx-list"><p style="font-size:0.78rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p></div>
+      <div class="tx-list" id="tx-list"><p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p></div>
     </div>
+
   </div>
 </div>
 
@@ -409,12 +622,53 @@
   <div class="modal">
     <button class="modal-close" onclick="declinePaymentRequest()">✕</button>
     <h2>🧾 Zahlungsanfrage!</h2>
-    <p style="font-size:0.85rem;color:rgba(245,230,200,0.6);" id="modal-from-text">Von: —</p>
+    <p style="font-size:0.82rem;color:rgba(245,230,200,0.6);" id="modal-from-text">Von: —</p>
     <div class="modal-amount" id="modal-amount">0,00 €</div>
-    <div style="font-size:0.75rem;color:rgba(245,230,200,0.5);text-align:center;margin-bottom:20px;line-height:1.6;" id="modal-items-text"></div>
+    <div style="font-size:0.72rem;color:rgba(245,230,200,0.5);text-align:center;margin-bottom:16px;line-height:1.6;" id="modal-items-text"></div>
     <div id="modal-status" class="status-msg"></div>
     <button class="btn btn-green btn-full" onclick="acceptPaymentRequest()">✅ Jetzt bezahlen</button>
     <button class="btn btn-red btn-full" style="margin-bottom:0;" onclick="declinePaymentRequest()">❌ Ablehnen</button>
+  </div>
+</div>
+
+<!-- BUY PRODUCT MODAL -->
+<div class="modal-overlay" id="buy-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeBuyModal()">✕</button>
+    <div id="buy-modal-img" style="width:100%;height:160px;border-radius:8px;overflow:hidden;margin-bottom:14px;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:3rem;"></div>
+    <h2 id="buy-modal-name">Produkt</h2>
+    <p style="font-size:0.75rem;color:rgba(245,230,200,0.4);margin-bottom:6px;" id="buy-modal-seller">Verkäufer: —</p>
+    <p style="font-size:0.75rem;color:rgba(245,230,200,0.5);margin-bottom:10px;" id="buy-modal-desc"></p>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <span style="font-size:0.72rem;color:rgba(245,230,200,0.4);">PREIS</span>
+      <span style="font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--gold);" id="buy-modal-price">0,00 €</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="font-size:0.72rem;color:rgba(245,230,200,0.4);">LAGER</span>
+      <span style="font-size:0.85rem;color:var(--cream);" id="buy-modal-stock">0</span>
+    </div>
+    <div class="label">Menge</div>
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:14px;">
+      <button class="btn btn-outline btn-sm" onclick="changeBuyQty(-1)">−</button>
+      <span id="buy-qty-display" style="font-size:1.1rem;color:var(--gold);min-width:30px;text-align:center;">1</span>
+      <button class="btn btn-outline btn-sm" onclick="changeBuyQty(1)">+</button>
+    </div>
+    <div id="buy-modal-status" class="status-msg"></div>
+    <button class="btn btn-green btn-full" onclick="confirmBuy()">🛒 Kaufen</button>
+  </div>
+</div>
+
+<!-- USE ITEM MODAL -->
+<div class="modal-overlay" id="use-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeUseModal()">✕</button>
+    <div id="use-modal-img" style="width:100%;height:140px;border-radius:8px;overflow:hidden;margin-bottom:14px;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:3rem;"></div>
+    <h2 id="use-modal-name">—</h2>
+    <p style="font-size:0.75rem;color:rgba(245,230,200,0.5);margin:8px 0 14px;" id="use-modal-meta"></p>
+    <div id="use-modal-uses" class="uses-bar" style="margin-bottom:16px;flex-wrap:wrap;gap:3px;"></div>
+    <button class="btn btn-gold btn-full" id="use-modal-btn" onclick="useItem()">Benutzen</button>
+    <button class="btn btn-blue btn-full" onclick="resellFromModal()">↩️ In Shop stellen</button>
+    <button class="btn btn-outline btn-full" style="margin-bottom:0;" onclick="closeUseModal()">Schließen</button>
   </div>
 </div>
 
@@ -426,16 +680,26 @@ const { createClient } = supabase;
 const db = createClient(SUPA_URL, SUPA_KEY);
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
-let currentUser = null;       // { id, name, password, balance, connections[] }
+let currentUser   = null;
 let pendingReqId  = null;
 let calcExpr      = '0';
 let calcItems     = [];
 let calcTotal     = 0;
 let realtimeSubs  = [];
+let currentBuyProduct = null;
+let buyQty        = 1;
+let currentUseItem = null;
+let marketFilter  = 'alle';
+let invFilter     = 'alle';
+let marketSeller  = null;
+
+const CAT_LABELS = { essen:'🍔 Essen', kleidung:'👕 Kleidung', wohnung:'🏠 Wohnung', moebel:'🛋️ Möbel', transport:'🚗 Transport' };
+const CAT_EMOJI  = { essen:'🍔', kleidung:'👕', wohnung:'🏠', moebel:'🛋️', transport:'🚗' };
+const CAT_USES   = { essen: 1, kleidung: 10 }; // essen=1mal, kleidung=10mal, others unlimited
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
-const fmt = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
-const getTS = () => new Date().toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const fmt  = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+const fmtN = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
 
 function showNotif(msg) {
   const b = document.getElementById('notification-bar');
@@ -444,6 +708,7 @@ function showNotif(msg) {
 }
 function showStatus(id, msg, ok) {
   const el = document.getElementById(id);
+  if(!el) return;
   el.textContent = msg;
   el.className = 'status-msg show ' + (ok ? 'status-ok' : 'status-err');
   setTimeout(() => { if(el) el.classList.remove('show'); }, 3500);
@@ -456,7 +721,7 @@ function setBtnLoading(id, loading, label) {
   btn.textContent = loading ? '...' : label;
 }
 
-// ─── AUTH TAB SWITCH ──────────────────────────────────────────────────────────
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
 function switchAuthTab(t) {
   document.getElementById('tab-register').style.display = t==='register' ? 'block' : 'none';
   document.getElementById('tab-login').style.display    = t==='login'    ? 'block' : 'none';
@@ -464,18 +729,15 @@ function switchAuthTab(t) {
   document.getElementById('auth-tab-login').classList.toggle('active', t==='login');
 }
 
-// ─── REGISTER ─────────────────────────────────────────────────────────────────
 async function registerAccount() {
-  const name  = document.getElementById('reg-name').value.trim();
-  const pass  = document.getElementById('reg-pass').value.trim();
-  const geld  = parseFloat(document.getElementById('reg-geld').value) || 0;
+  const name = document.getElementById('reg-name').value.trim();
+  const pass = document.getElementById('reg-pass').value.trim();
+  const geld = parseFloat(document.getElementById('reg-geld').value) || 0;
   if (!name) return showStatus('reg-status','Name eingeben!', false);
   if (!pass || pass.length < 3) return showStatus('reg-status','Passwort mind. 3 Zeichen!', false);
-
   setBtnLoading('reg-btn', true, 'Konto erstellen');
   const { error } = await db.from('accounts').insert({ name, password: pass, balance: geld, connections: [] });
   setBtnLoading('reg-btn', false, 'Konto erstellen');
-
   if (error) {
     if (error.code === '23505') return showStatus('reg-status','Name bereits vergeben!', false);
     return showStatus('reg-status','Fehler: ' + error.message, false);
@@ -485,29 +747,23 @@ async function registerAccount() {
   setTimeout(() => switchAuthTab('login'), 1200);
 }
 
-// ─── LOGIN ────────────────────────────────────────────────────────────────────
 async function loginAccount() {
   const name = document.getElementById('login-name').value.trim();
   const pass = document.getElementById('login-pass').value.trim();
   if (!name || !pass) return showStatus('login-status','Felder ausfüllen!', false);
-
   setBtnLoading('login-btn', true, 'Einloggen');
   const { data, error } = await db.from('accounts').select('*').eq('name', name).single();
   setBtnLoading('login-btn', false, 'Einloggen');
-
   if (error || !data) return showStatus('login-status','Konto nicht gefunden!', false);
   if (data.password !== pass) return showStatus('login-status','Falsches Passwort!', false);
-
   currentUser = data;
   startRealtimeSubscriptions();
   showDashboard();
 }
 
-// ─── LOGOUT ───────────────────────────────────────────────────────────────────
 function logout() {
   realtimeSubs.forEach(s => db.removeChannel(s));
-  realtimeSubs = [];
-  currentUser = null;
+  realtimeSubs = []; currentUser = null;
   document.getElementById('screen-dashboard').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
   showTab('verbinden');
@@ -522,67 +778,43 @@ function showDashboard() {
 
 function renderDashboard() {
   if (!currentUser) return;
-  document.getElementById('dash-name').textContent    = currentUser.name;
+  document.getElementById('dash-name').textContent     = currentUser.name;
   document.getElementById('dash-balance').textContent  = fmt(currentUser.balance);
   document.getElementById('device-badge').textContent  = currentUser.name.substring(0,10).toUpperCase();
   document.getElementById('my-password-display').textContent = currentUser.password;
   renderConnectedList();
   renderTransferSelects();
-  renderTxList();
+  renderMarketSellerList();
 }
 
-// ─── REALTIME SUBSCRIPTIONS ───────────────────────────────────────────────────
+// ─── REALTIME ─────────────────────────────────────────────────────────────────
 function startRealtimeSubscriptions() {
   realtimeSubs.forEach(s => db.removeChannel(s));
   realtimeSubs = [];
-
-  // 1. Mein Konto live updaten (Balance, Connections)
   const accSub = db.channel('account-' + currentUser.id)
-    .on('postgres_changes', {
-      event: 'UPDATE', schema: 'public', table: 'accounts',
-      filter: `id=eq.${currentUser.id}`
-    }, payload => {
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'accounts', filter: `id=eq.${currentUser.id}` }, payload => {
       currentUser = { ...currentUser, ...payload.new };
       renderDashboard();
-      showNotif('💰 Konto aktualisiert: ' + fmt(payload.new.balance));
-    })
-    .subscribe();
+    }).subscribe();
   realtimeSubs.push(accSub);
-
-  // 2. Zahlungsanfragen an mich
   const reqSub = db.channel('payment-req-' + currentUser.name)
-    .on('postgres_changes', {
-      event: 'INSERT', schema: 'public', table: 'payment_requests',
-      filter: `to_user=eq.${currentUser.name}`
-    }, payload => {
-      const req = payload.new;
-      if (req.status === 'pending') showPaymentModal(req);
-    })
-    .subscribe();
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payment_requests', filter: `to_user=eq.${currentUser.name}` }, payload => {
+      if (payload.new.status === 'pending') showPaymentModal(payload.new);
+    }).subscribe();
   realtimeSubs.push(reqSub);
-
-  // 3. Neue Transaktionen für mich
   const txSub = db.channel('tx-' + currentUser.name)
-    .on('postgres_changes', {
-      event: 'INSERT', schema: 'public', table: 'transactions'
-    }, payload => {
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, payload => {
       const t = payload.new;
       if (t.from_user === currentUser.name || t.to_user === currentUser.name) {
-        refreshBalance();
-        renderTxList();
+        refreshBalance(); renderTxList();
       }
-    })
-    .subscribe();
+    }).subscribe();
   realtimeSubs.push(txSub);
 }
 
 async function refreshBalance() {
   const { data } = await db.from('accounts').select('balance,connections').eq('id', currentUser.id).single();
-  if (data) {
-    currentUser.balance     = data.balance;
-    currentUser.connections = data.connections;
-    renderDashboard();
-  }
+  if (data) { currentUser.balance = data.balance; currentUser.connections = data.connections; renderDashboard(); }
 }
 
 // ─── CONNECT ──────────────────────────────────────────────────────────────────
@@ -590,28 +822,20 @@ async function connectToAccount() {
   const pass = document.getElementById('connect-pass').value.trim();
   if (!pass) return showStatus('connect-status','Passwort eingeben!', false);
   if (pass === currentUser.password) return showStatus('connect-status','Das ist dein eigenes Passwort!', false);
-
   const { data: other, error } = await db.from('accounts').select('*').eq('password', pass).single();
-  if (error || !other) return showStatus('connect-status','❌ Kein Konto mit diesem Passwort gefunden!', false);
-  if ((currentUser.connections || []).includes(other.name))
-    return showStatus('connect-status','Bereits verbunden mit ' + other.name + '!', false);
-
-  // Meine Connections updaten
-  const myConns = [...(currentUser.connections || []), other.name];
+  if (error || !other) return showStatus('connect-status','❌ Kein Konto gefunden!', false);
+  if ((currentUser.connections||[]).includes(other.name)) return showStatus('connect-status','Bereits verbunden mit ' + other.name + '!', false);
+  const myConns = [...(currentUser.connections||[]), other.name];
   await db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id);
-
-  // Andere Connections updaten (gegenseitig)
-  const otherConns = [...(other.connections || [])];
+  const otherConns = [...(other.connections||[])];
   if (!otherConns.includes(currentUser.name)) otherConns.push(currentUser.name);
   await db.from('accounts').update({ connections: otherConns }).eq('id', other.id);
-
   currentUser.connections = myConns;
   showStatus('connect-status','✅ Verbunden mit ' + other.name + '!', true);
   document.getElementById('connect-pass').value = '';
   renderDashboard();
 }
 
-// Copy password on click
 document.getElementById('my-password-display').addEventListener('click', function() {
   navigator.clipboard.writeText(this.textContent).catch(()=>{});
   showNotif('📋 Passwort kopiert!');
@@ -620,10 +844,7 @@ document.getElementById('my-password-display').addEventListener('click', functio
 function renderConnectedList() {
   const list = document.getElementById('connected-list');
   const conns = currentUser.connections || [];
-  if (conns.length === 0) {
-    list.innerHTML = '<p style="font-size:0.78rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p>';
-    return;
-  }
+  if (!conns.length) { list.innerHTML = '<p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p>'; return; }
   list.innerHTML = conns.map(name => `
     <div class="connected-device" style="border-color:rgba(26,156,88,0.4);background:rgba(26,156,88,0.08);">
       <span><span class="dot dot-green"></span>${name}</span>
@@ -632,12 +853,11 @@ function renderConnectedList() {
 }
 
 async function disconnectFrom(name) {
-  const myConns = (currentUser.connections || []).filter(n => n !== name);
+  const myConns = (currentUser.connections||[]).filter(n => n !== name);
   await db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id);
-  // remove from other side too
   const { data: other } = await db.from('accounts').select('*').eq('name', name).single();
   if (other) {
-    const otherConns = (other.connections || []).filter(n => n !== currentUser.name);
+    const otherConns = (other.connections||[]).filter(n => n !== currentUser.name);
     await db.from('accounts').update({ connections: otherConns }).eq('id', other.id);
   }
   currentUser.connections = myConns;
@@ -646,11 +866,11 @@ async function disconnectFrom(name) {
 
 function renderTransferSelects() {
   const conns = currentUser.connections || [];
-  const opts = conns.length === 0
+  const opts = !conns.length
     ? '<option value="">— Keine Verbindungen —</option>'
-    : '<option value="">— Konto wählen —</option>' + conns.map(n => `<option value="${n}">${n}</option>`).join('');
-  document.getElementById('transfer-to').innerHTML      = opts;
-  document.getElementById('payment-req-to').innerHTML   = opts;
+    : '<option value="">— Konto wählen —</option>' + conns.map(n=>`<option value="${n}">${n}</option>`).join('');
+  document.getElementById('transfer-to').innerHTML    = opts;
+  document.getElementById('payment-req-to').innerHTML = opts;
 }
 
 // ─── TRANSFER ─────────────────────────────────────────────────────────────────
@@ -661,18 +881,11 @@ async function sendMoney() {
   if (!toName) return showStatus('transfer-status','Empfänger wählen!', false);
   if (!amount || amount <= 0) return showStatus('transfer-status','Betrag eingeben!', false);
   if (amount > currentUser.balance) return showStatus('transfer-status','Nicht genug Guthaben!', false);
-
-  // Empfänger holen
   const { data: toAcc } = await db.from('accounts').select('*').eq('name', toName).single();
   if (!toAcc) return showStatus('transfer-status','Empfänger nicht gefunden!', false);
-
-  // Balances updaten
   await db.from('accounts').update({ balance: currentUser.balance - amount }).eq('id', currentUser.id);
   await db.from('accounts').update({ balance: toAcc.balance + amount }).eq('id', toAcc.id);
-
-  // Transaktion speichern
   await db.from('transactions').insert({ from_user: currentUser.name, to_user: toName, amount, note });
-
   currentUser.balance -= amount;
   renderDashboard();
   showStatus('transfer-status', `✅ ${fmt(amount)} an ${toName} gesendet!`, true);
@@ -682,30 +895,434 @@ async function sendMoney() {
   renderTxList();
 }
 
-// ─── TRANSACTION LIST ─────────────────────────────────────────────────────────
+// ─── TRANSACTIONS ─────────────────────────────────────────────────────────────
 async function renderTxList() {
   const { data: txs } = await db.from('transactions')
-    .select('*')
-    .or(`from_user.eq.${currentUser.name},to_user.eq.${currentUser.name}`)
-    .order('created_at', { ascending: false })
-    .limit(40);
-
+    .select('*').or(`from_user.eq.${currentUser.name},to_user.eq.${currentUser.name}`)
+    .order('created_at', { ascending: false }).limit(40);
   const list = document.getElementById('tx-list');
-  if (!txs || txs.length === 0) {
-    list.innerHTML = '<p style="font-size:0.78rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p>';
-    return;
-  }
+  if (!txs || !txs.length) { list.innerHTML = '<p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p>'; return; }
   list.innerHTML = txs.map(t => {
     const out = t.from_user === currentUser.name;
     const cls = out ? 'tx-minus' : 'tx-plus';
     const who = out ? `→ ${t.to_user}` : `← ${t.from_user}`;
     const ts  = new Date(t.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    return `<div class="tx-item">
-      <span>${who}${t.note ? ' · ' + t.note : ''}</span>
+    return `<div class="tx-item"><span>${who}${t.note?' · '+t.note:''}</span>
       <span><span class="${cls}">${out?'-':'+'}${fmt(t.amount)}</span>
-      <span class="tx-time" style="margin-left:8px;">${ts}</span></span>
+      <span class="tx-time" style="margin-left:6px;">${ts}</span></span></div>`;
+  }).join('');
+}
+
+// ─── MARKTPLATZ ───────────────────────────────────────────────────────────────
+function renderMarketSellerList() {
+  const conns = currentUser.connections || [];
+  const div = document.getElementById('seller-list-market');
+  if (!conns.length) { div.innerHTML = '<p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen. Verbinde dich zuerst mit anderen Konten.</p>'; return; }
+  div.innerHTML = conns.map(name => `
+    <div class="connected-device" style="cursor:pointer;" onclick="openMarketSeller('${name}')">
+      <span><span class="dot dot-green"></span><strong>${name}</strong></span>
+      <button class="btn btn-gold btn-sm">🛒 Shop öffnen</button>
+    </div>`).join('');
+}
+
+async function openMarketSeller(sellerName) {
+  marketSeller = sellerName;
+  document.getElementById('market-seller-title').textContent = 'Produkte von ' + sellerName;
+  document.getElementById('market-products-area').style.display = 'block';
+  document.getElementById('seller-list-market').style.display = 'none';
+  marketFilter = 'alle';
+  await loadMarketProducts(sellerName);
+}
+
+function closeMarketSeller() {
+  marketSeller = null;
+  document.getElementById('market-products-area').style.display = 'none';
+  document.getElementById('seller-list-market').style.display = 'block';
+}
+
+async function loadMarketProducts(sellerName) {
+  const { data: products } = await db.from('products')
+    .select('*').eq('seller', sellerName).eq('active', true).order('created_at', { ascending: false });
+  renderMarketCatFilter(products || []);
+  renderMarketGrid(products || []);
+}
+
+function renderMarketCatFilter(products) {
+  const cats = [...new Set((products||[]).map(p=>p.category))].filter(Boolean);
+  const div = document.getElementById('market-cat-filter');
+  div.innerHTML = `<button class="cat-chip ${marketFilter==='alle'?'active':''}" onclick="setMarketFilter('alle',this)">Alle</button>` +
+    cats.map(c=>`<button class="cat-chip ${marketFilter===c?'active':''}" onclick="setMarketFilter('${c}',this)">${CAT_LABELS[c]||c}</button>`).join('');
+}
+
+function setMarketFilter(cat, el) {
+  marketFilter = cat;
+  document.querySelectorAll('#market-cat-filter .cat-chip').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if (marketSeller) loadMarketProducts(marketSeller);
+}
+
+function renderMarketGrid(products) {
+  const grid = document.getElementById('market-product-grid');
+  let filtered = products;
+  if (marketFilter !== 'alle') filtered = products.filter(p => p.category === marketFilter);
+  if (!filtered.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🛒</div>Keine Produkte in dieser Kategorie.</div>'; return; }
+  grid.innerHTML = filtered.map(p => {
+    const imgHtml = p.image_data
+      ? `<img src="${p.image_data}" alt="${p.name}" />`
+      : `<span style="font-size:2.5rem;">${CAT_EMOJI[p.category]||'📦'}</span>`;
+    const outOfStock = p.stock <= 0;
+    return `<div class="product-card ${outOfStock?'out-of-stock':''}" onclick="${outOfStock?'':'openBuyModal('+JSON.stringify(JSON.stringify(p))+')'}" >
+      <div class="product-img">${imgHtml}</div>
+      <div class="product-cat-badge">${CAT_LABELS[p.category]||p.category}</div>
+      <div class="product-info">
+        <div class="product-name">${p.name}</div>
+        <div class="product-price">${fmt(p.price)}</div>
+        <div class="product-stock">Lager: ${p.stock} Stück</div>
+      </div>
     </div>`;
   }).join('');
+}
+
+// ─── BUY MODAL ────────────────────────────────────────────────────────────────
+function openBuyModal(productJson) {
+  currentBuyProduct = JSON.parse(productJson);
+  buyQty = 1;
+  const p = currentBuyProduct;
+  const imgDiv = document.getElementById('buy-modal-img');
+  imgDiv.innerHTML = p.image_data ? `<img src="${p.image_data}" style="width:100%;height:100%;object-fit:cover;" />` : `<span>${CAT_EMOJI[p.category]||'📦'}</span>`;
+  document.getElementById('buy-modal-name').textContent   = p.name;
+  document.getElementById('buy-modal-seller').textContent = 'Verkäufer: ' + p.seller;
+  document.getElementById('buy-modal-desc').textContent   = p.description || '';
+  document.getElementById('buy-modal-price').textContent  = fmt(p.price);
+  document.getElementById('buy-modal-stock').textContent  = p.stock + ' Stück';
+  document.getElementById('buy-qty-display').textContent  = 1;
+  document.getElementById('buy-modal-status').className   = 'status-msg';
+  document.getElementById('buy-modal').classList.add('show');
+}
+
+function changeBuyQty(delta) {
+  if (!currentBuyProduct) return;
+  buyQty = Math.max(1, Math.min(currentBuyProduct.stock, buyQty + delta));
+  document.getElementById('buy-qty-display').textContent = buyQty;
+}
+
+function closeBuyModal() {
+  document.getElementById('buy-modal').classList.remove('show');
+  currentBuyProduct = null;
+}
+
+async function confirmBuy() {
+  const p = currentBuyProduct;
+  if (!p) return;
+  const total = p.price * buyQty;
+  if (total > currentUser.balance) return showStatus('buy-modal-status','Nicht genug Guthaben!', false);
+  if (buyQty > p.stock) return showStatus('buy-modal-status','Nicht genug Lager!', false);
+
+  // Deduct buyer balance
+  await db.from('accounts').update({ balance: currentUser.balance - total }).eq('id', currentUser.id);
+
+  // Credit seller
+  const { data: seller } = await db.from('accounts').select('*').eq('name', p.seller).single();
+  if (seller) await db.from('accounts').update({ balance: seller.balance + total }).eq('id', seller.id);
+
+  // Reduce stock
+  await db.from('products').update({ stock: p.stock - buyQty }).eq('id', p.id);
+
+  // Transaction
+  await db.from('transactions').insert({ from_user: currentUser.name, to_user: p.seller, amount: total, note: `Kauf: ${p.name} x${buyQty}` });
+
+  // Add to inventory
+  for (let i = 0; i < buyQty; i++) {
+    const maxUses = CAT_USES[p.category] || null;
+    await db.from('inventory').insert({
+      owner: currentUser.name,
+      product_id: p.id,
+      name: p.name,
+      category: p.category,
+      image_data: p.image_data,
+      price_paid: p.price,
+      uses_left: maxUses,
+      max_uses: maxUses,
+      active: true
+    });
+  }
+
+  currentUser.balance -= total;
+  renderDashboard();
+  closeBuyModal();
+  showNotif(`🛒 ${p.name} x${buyQty} gekauft für ${fmt(total)}!`);
+  if (marketSeller) loadMarketProducts(marketSeller);
+  renderTxList();
+}
+
+// ─── MEIN SHOP ────────────────────────────────────────────────────────────────
+function switchShopTab(t) {
+  ['produkte','upload','resell'].forEach(s => {
+    document.getElementById('shop-'+s).style.display = s===t ? 'block' : 'none';
+    document.getElementById('shop-tab-'+s).classList.toggle('active', s===t);
+  });
+  if (t==='produkte') loadMyProducts();
+  if (t==='resell') loadResellInventory();
+}
+
+async function loadMyProducts() {
+  const { data: prods } = await db.from('products').select('*').eq('seller', currentUser.name).order('created_at', { ascending: false });
+  const div = document.getElementById('my-products-list');
+  if (!prods || !prods.length) { div.innerHTML = '<div class="empty-state"><div class="icon">📦</div>Noch keine Produkte hochgeladen.</div>'; return; }
+  div.innerHTML = prods.map(p => {
+    const imgHtml = p.image_data
+      ? `<div class="my-product-thumb"><img src="${p.image_data}" /></div>`
+      : `<div class="my-product-thumb">${CAT_EMOJI[p.category]||'📦'}</div>`;
+    return `<div class="my-product-row">
+      ${imgHtml}
+      <div class="my-product-info">
+        <div class="my-product-name">${p.name}</div>
+        <div class="my-product-meta">${CAT_LABELS[p.category]||''} · Lager: ${p.stock}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+          <input class="price-edit-input" type="number" value="${fmtN(p.price)}" step="0.01" min="0"
+            onchange="updateProductPrice('${p.id}', this.value)" />
+          <span style="font-size:0.7rem;color:rgba(245,230,200,0.4);">€</span>
+        </div>
+      </div>
+      <div class="my-product-actions">
+        <button class="btn btn-outline btn-sm" onclick="addStock('${p.id}', ${p.stock})">+Lager</button>
+        <button class="btn btn-red btn-sm" onclick="deleteProduct('${p.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function updateProductPrice(id, newPrice) {
+  const price = parseFloat(newPrice);
+  if (!price || price <= 0) return;
+  await db.from('products').update({ price }).eq('id', id);
+  showNotif('✅ Preis aktualisiert!');
+}
+
+async function addStock(id, current) {
+  const add = parseInt(prompt('Wie viele Stück hinzufügen?', '1'));
+  if (!add || add <= 0) return;
+  await db.from('products').update({ stock: current + add }).eq('id', id);
+  loadMyProducts();
+}
+
+async function deleteProduct(id) {
+  if (!confirm('Produkt wirklich löschen?')) return;
+  await db.from('products').update({ active: false }).eq('id', id);
+  loadMyProducts();
+}
+
+// ─── IMAGE UPLOAD ─────────────────────────────────────────────────────────────
+function handleImgUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const data = ev.target.result;
+    document.getElementById('upload-img-data').value = data;
+    const area = document.getElementById('upload-img-area');
+    area.innerHTML = `<img src="${data}" style="max-height:120px;border-radius:4px;" />`;
+    area.classList.add('has-img');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function uploadProduct() {
+  const name     = document.getElementById('upload-name').value.trim();
+  const category = document.getElementById('upload-category').value;
+  const price    = parseFloat(document.getElementById('upload-price').value);
+  const stock    = parseInt(document.getElementById('upload-stock').value) || 1;
+  const desc     = document.getElementById('upload-desc').value.trim();
+  const imgData  = document.getElementById('upload-img-data').value;
+
+  if (!name) return showStatus('upload-status','Name eingeben!', false);
+  if (!category) return showStatus('upload-status','Kategorie wählen!', false);
+  if (!price || price <= 0) return showStatus('upload-status','Preis eingeben!', false);
+
+  const { error } = await db.from('products').insert({
+    seller: currentUser.name,
+    name, category, price, stock,
+    description: desc,
+    image_data: imgData || null,
+    active: true
+  });
+
+  if (error) return showStatus('upload-status','Fehler: ' + error.message, false);
+  showStatus('upload-status','✅ Produkt hochgeladen!', true);
+  showNotif('📤 ' + name + ' in deinen Shop eingestellt!');
+
+  // Reset form
+  document.getElementById('upload-name').value     = '';
+  document.getElementById('upload-category').value = '';
+  document.getElementById('upload-price').value    = '';
+  document.getElementById('upload-stock').value    = '1';
+  document.getElementById('upload-desc').value     = '';
+  document.getElementById('upload-img-data').value = '';
+  const area = document.getElementById('upload-img-area');
+  area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span>Bild auswählen oder hier klicken</span>';
+  area.classList.remove('has-img');
+
+  setTimeout(() => switchShopTab('produkte'), 1200);
+}
+
+// ─── RESELL ───────────────────────────────────────────────────────────────────
+async function loadResellInventory() {
+  const { data: items } = await db.from('inventory')
+    .select('*').eq('owner', currentUser.name).eq('active', true).order('created_at', { ascending: false });
+  const div = document.getElementById('resell-inv-list');
+  if (!items || !items.length) { div.innerHTML = '<div class="empty-state"><div class="icon">🎒</div>Kein Inventar zum Weiterverkaufen.</div>'; return; }
+  div.innerHTML = items.map(item => {
+    const imgHtml = item.image_data
+      ? `<div class="my-product-thumb"><img src="${item.image_data}" /></div>`
+      : `<div class="my-product-thumb">${CAT_EMOJI[item.category]||'📦'}</div>`;
+    const usesLeft = item.uses_left !== null ? `· ${item.uses_left} Nutzungen übrig` : '';
+    return `<div class="my-product-row">
+      ${imgHtml}
+      <div class="my-product-info">
+        <div class="my-product-name">${item.name}<span class="resell-badge">Gekauft</span></div>
+        <div class="my-product-meta">${CAT_LABELS[item.category]||''} ${usesLeft}</div>
+        <input class="price-edit-input" type="number" id="resell-price-${item.id}" placeholder="Neuer Preis €" step="0.01" min="0" style="margin-top:4px;width:100%;" />
+      </div>
+      <button class="btn btn-blue btn-sm" onclick="resellItem('${item.id}')">↩️ Einstellen</button>
+    </div>`;
+  }).join('');
+}
+
+async function resellItem(invId) {
+  const priceInput = document.getElementById('resell-price-' + invId);
+  const newPrice = parseFloat(priceInput ? priceInput.value : 0);
+  if (!newPrice || newPrice <= 0) return showNotif('❌ Preis eingeben!');
+  const { data: item } = await db.from('inventory').select('*').eq('id', invId).single();
+  if (!item) return;
+  // Create product listing
+  await db.from('products').insert({
+    seller: currentUser.name, name: item.name, category: item.category,
+    price: newPrice, stock: 1, image_data: item.image_data, active: true,
+    description: 'Weiterverkauf (gebraucht)'
+  });
+  // Remove from inventory
+  await db.from('inventory').update({ active: false }).eq('id', invId);
+  showNotif('✅ ' + item.name + ' für ' + fmt(newPrice) + ' in Shop eingestellt!');
+  loadResellInventory();
+}
+
+async function resellFromModal() {
+  if (!currentUseItem) return;
+  closeUseModal();
+  switchShopTab('resell');
+  showTab('meinshop');
+}
+
+// ─── INVENTAR ─────────────────────────────────────────────────────────────────
+async function renderInventar() {
+  const { data: items } = await db.from('inventory')
+    .select('*').eq('owner', currentUser.name).eq('active', true).order('created_at', { ascending: false });
+  const grid = document.getElementById('inv-grid');
+  let filtered = items || [];
+  if (invFilter !== 'alle') filtered = filtered.filter(i => i.category === invFilter);
+
+  // Update filter chips
+  document.querySelectorAll('#inv-cat-filter .cat-chip').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('onclick').includes(`'${invFilter}'`));
+  });
+
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🎒</div>Noch nichts in dieser Kategorie.</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(item => {
+    const imgHtml = item.image_data
+      ? `<div class="inv-img"><img src="${item.image_data}" /></div>`
+      : `<div class="inv-img">${CAT_EMOJI[item.category]||'📦'}</div>`;
+    let actionBtn = '';
+    let usesInfo = '';
+    if (item.category === 'essen') {
+      actionBtn = `<button class="inv-action" style="background:linear-gradient(135deg,#0d5c34,#1a9c58);color:white;" onclick="openUseModal('${item.id}')">🍽️ Essen</button>`;
+      usesInfo = `<div style="font-size:0.65rem;color:rgba(245,230,200,0.4);">1× verwendbar</div>`;
+    } else if (item.category === 'kleidung') {
+      const uses = item.uses_left !== null ? item.uses_left : 10;
+      const useDots = Array(10).fill(0).map((_,i) => `<span class="use-dot ${i >= uses ? 'used' : ''}"></span>`).join('');
+      actionBtn = `<button class="inv-action" style="background:linear-gradient(135deg,#3d1a6e,#7c3aed);color:white;" onclick="openUseModal('${item.id}')">👕 Anziehen</button>`;
+      usesInfo = `<div class="uses-bar" style="margin:3px 0;">${useDots}</div><div style="font-size:0.65rem;color:rgba(245,230,200,0.4);">${uses}× übrig</div>`;
+    } else {
+      actionBtn = `<button class="inv-action" style="background:rgba(201,168,76,0.15);color:var(--gold);border:1px solid var(--gold-dark);" onclick="openUseModal('${item.id}')">👁️ Ansehen</button>`;
+    }
+    return `<div class="inv-card">
+      ${imgHtml}
+      <div class="inv-info">
+        <div class="inv-name">${item.name}</div>
+        <div class="inv-meta">${CAT_LABELS[item.category]||''}</div>
+        ${usesInfo}
+        ${actionBtn}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterInv(cat) {
+  invFilter = cat;
+  renderInventar();
+}
+
+// ─── USE ITEM MODAL ───────────────────────────────────────────────────────────
+async function openUseModal(invId) {
+  const { data: item } = await db.from('inventory').select('*').eq('id', invId).single();
+  if (!item) return;
+  currentUseItem = item;
+  const imgDiv = document.getElementById('use-modal-img');
+  imgDiv.innerHTML = item.image_data ? `<img src="${item.image_data}" style="width:100%;height:100%;object-fit:cover;" />` : `<span>${CAT_EMOJI[item.category]||'📦'}</span>`;
+  document.getElementById('use-modal-name').textContent = item.name;
+  const usesLeft = item.uses_left !== null ? ` · ${item.uses_left} Nutzungen übrig` : '';
+  document.getElementById('use-modal-meta').textContent = (CAT_LABELS[item.category]||'') + usesLeft;
+
+  const usesBar = document.getElementById('use-modal-uses');
+  if (item.category === 'kleidung' && item.max_uses) {
+    const uses = item.uses_left || 0;
+    usesBar.innerHTML = Array(item.max_uses).fill(0).map((_,i) => `<span class="use-dot ${i >= uses ? 'used' : ''}"></span>`).join('');
+    usesBar.style.display = 'flex';
+  } else { usesBar.style.display = 'none'; }
+
+  const btn = document.getElementById('use-modal-btn');
+  if (item.category === 'essen') btn.textContent = '🍽️ Essen';
+  else if (item.category === 'kleidung') btn.textContent = '👕 Anziehen';
+  else btn.textContent = '✅ Benutzen';
+  btn.style.display = 'block';
+
+  document.getElementById('use-modal').classList.add('show');
+}
+
+function closeUseModal() {
+  document.getElementById('use-modal').classList.remove('show');
+  currentUseItem = null;
+}
+
+async function useItem() {
+  if (!currentUseItem) return;
+  const item = currentUseItem;
+  if (item.category === 'essen') {
+    await db.from('inventory').update({ active: false }).eq('id', item.id);
+    closeUseModal();
+    showNotif(`🍽️ Lecker! ${item.name} gegessen!`);
+    renderInventar();
+  } else if (item.category === 'kleidung') {
+    const usesLeft = (item.uses_left || 10) - 1;
+    if (usesLeft <= 0) {
+      await db.from('inventory').update({ uses_left: 0, active: false }).eq('id', item.id);
+      closeUseModal();
+      showNotif(`👕 ${item.name} ist verschlissen und verschwunden!`);
+    } else {
+      await db.from('inventory').update({ uses_left: usesLeft }).eq('id', item.id);
+      currentUseItem.uses_left = usesLeft;
+      const uses = usesLeft;
+      const usesBar = document.getElementById('use-modal-uses');
+      usesBar.innerHTML = Array(item.max_uses||10).fill(0).map((_,i) => `<span class="use-dot ${i >= uses ? 'used' : ''}"></span>`).join('');
+      document.getElementById('use-modal-meta').textContent = (CAT_LABELS[item.category]||'') + ` · ${usesLeft} Nutzungen übrig`;
+      showNotif(`👕 ${item.name} angezogen! Noch ${usesLeft}× möglich.`);
+    }
+    renderInventar();
+  } else {
+    showNotif(`✅ ${item.name} benutzt!`);
+  }
 }
 
 // ─── CALCULATOR ───────────────────────────────────────────────────────────────
@@ -716,10 +1333,8 @@ function calcInput(v) {
 function calcEquals() {
   try {
     let r = Function('"use strict";return (' + calcExpr + ')')();
-    r = Math.round(r * 100) / 100;
-    calcExpr = String(r); calcTotal = r;
-    document.getElementById('calc-display').textContent = fmt(r);
-    updateCalcNote();
+    r = Math.round(r * 100) / 100; calcExpr = String(r); calcTotal = r;
+    document.getElementById('calc-display').textContent = fmt(r); updateCalcNote();
   } catch { document.getElementById('calc-display').textContent = 'Fehler'; calcExpr = '0'; }
 }
 function clearCalc() {
@@ -733,7 +1348,7 @@ function addArtikel() {
   const preis = parseFloat(document.getElementById('artikel-preis').value);
   if (!name || !preis || preis <= 0) return;
   calcItems.push({ name, preis });
-  calcTotal = Math.round(calcItems.reduce((s,i) => s + i.preis, 0) * 100) / 100;
+  calcTotal = Math.round(calcItems.reduce((s,i) => s+i.preis, 0)*100)/100;
   calcExpr  = String(calcTotal);
   document.getElementById('calc-display').textContent = fmt(calcTotal);
   document.getElementById('artikel-name').value  = '';
@@ -741,8 +1356,8 @@ function addArtikel() {
   renderItemList(); updateCalcNote();
 }
 function removeItem(i) {
-  calcItems.splice(i, 1);
-  calcTotal = Math.round(calcItems.reduce((s,it) => s + it.preis, 0) * 100) / 100;
+  calcItems.splice(i,1);
+  calcTotal = Math.round(calcItems.reduce((s,it) => s+it.preis,0)*100)/100;
   calcExpr  = String(calcTotal);
   document.getElementById('calc-display').textContent = calcTotal > 0 ? fmt(calcTotal) : '0';
   renderItemList(); updateCalcNote();
@@ -751,21 +1366,14 @@ function renderItemList() {
   const list = document.getElementById('item-list');
   if (!calcItems.length) { list.innerHTML = ''; return; }
   list.innerHTML = calcItems.map((it,i) => `
-    <div class="item-row">
-      <span>${it.name}</span>
-      <span style="display:flex;align-items:center;gap:8px;">
-        <span style="color:var(--gold);">${fmt(it.preis)}</span>
-        <button onclick="removeItem(${i})">✕</button>
-      </span>
-    </div>`).join('') +
-    `<div class="item-row" style="font-weight:700;">
-      <span>GESAMT</span><span style="color:var(--gold);">${fmt(calcTotal)}</span>
-    </div>`;
+    <div class="item-row"><span>${it.name}</span>
+    <span style="display:flex;align-items:center;gap:6px;"><span style="color:var(--gold);">${fmt(it.preis)}</span>
+    <button onclick="removeItem(${i})">✕</button></span></div>`).join('') +
+    `<div class="item-row" style="font-weight:700;"><span>GESAMT</span><span style="color:var(--gold);">${fmt(calcTotal)}</span></div>`;
 }
 function updateCalcNote() {
-  const el = document.getElementById('calc-note-display');
-  el.textContent = calcItems.length > 0
-    ? calcItems.map(i => i.name).join(', ') + ' = ' + fmt(calcTotal)
+  document.getElementById('calc-note-display').textContent = calcItems.length > 0
+    ? calcItems.map(i=>i.name).join(', ') + ' = ' + fmt(calcTotal)
     : 'Artikel hinzufügen...';
 }
 
@@ -775,13 +1383,8 @@ async function sendPaymentRequest() {
   const amount = calcTotal || parseFloat(calcExpr) || 0;
   if (!toName) return showStatus('payment-req-status','Empfänger wählen!', false);
   if (!amount || amount <= 0) return showStatus('payment-req-status','Betrag berechnen!', false);
-
   const { error } = await db.from('payment_requests').insert({
-    from_user: currentUser.name,
-    to_user:   toName,
-    amount,
-    items:     calcItems,
-    status:    'pending'
+    from_user: currentUser.name, to_user: toName, amount, items: calcItems, status: 'pending'
   });
   if (error) return showStatus('payment-req-status','Fehler: ' + error.message, false);
   showStatus('payment-req-status', `✅ Anfrage über ${fmt(amount)} an ${toName} gesendet!`, true);
@@ -793,8 +1396,7 @@ function showPaymentModal(req) {
   document.getElementById('modal-from-text').textContent = 'Von: ' + req.from_user;
   document.getElementById('modal-amount').textContent    = fmt(req.amount);
   const items = Array.isArray(req.items) ? req.items : [];
-  document.getElementById('modal-items-text').innerHTML =
-    items.length > 0 ? items.map(i => `${i.name}: ${fmt(i.preis)}`).join('<br>') : '';
+  document.getElementById('modal-items-text').innerHTML = items.length > 0 ? items.map(i=>`${i.name}: ${fmt(i.preis)}`).join('<br>') : '';
   document.getElementById('payment-modal').classList.add('show');
   showNotif('🧾 Zahlungsanfrage von ' + req.from_user + '!');
 }
@@ -805,34 +1407,23 @@ async function acceptPaymentRequest() {
   if (!req) return;
   if (currentUser.balance < req.amount) {
     const st = document.getElementById('modal-status');
-    st.textContent = 'Nicht genug Guthaben!';
-    st.className   = 'status-msg show status-err';
-    return;
+    st.textContent = 'Nicht genug Guthaben!'; st.className = 'status-msg show status-err'; return;
   }
-  // Geld bewegen
   const { data: fromAcc } = await db.from('accounts').select('*').eq('name', req.from_user).single();
   await db.from('accounts').update({ balance: currentUser.balance - req.amount }).eq('id', currentUser.id);
   if (fromAcc) await db.from('accounts').update({ balance: fromAcc.balance + req.amount }).eq('id', fromAcc.id);
-
-  // Transaktion + Status
   await db.from('transactions').insert({
-    from_user: currentUser.name, to_user: req.from_user,
-    amount: req.amount,
+    from_user: currentUser.name, to_user: req.from_user, amount: req.amount,
     note: 'Zahlung: ' + (Array.isArray(req.items) ? req.items.map(i=>i.name).join(', ') : '')
   });
   await db.from('payment_requests').update({ status: 'accepted' }).eq('id', pendingReqId);
-
   currentUser.balance -= req.amount;
-  renderDashboard();
-  closePaymentModal();
-  showNotif('✅ ' + fmt(req.amount) + ' bezahlt!');
-  renderTxList();
+  renderDashboard(); closePaymentModal();
+  showNotif('✅ ' + fmt(req.amount) + ' bezahlt!'); renderTxList();
 }
 
 async function declinePaymentRequest() {
-  if (pendingReqId) {
-    await db.from('payment_requests').update({ status: 'declined' }).eq('id', pendingReqId);
-  }
+  if (pendingReqId) await db.from('payment_requests').update({ status: 'declined' }).eq('id', pendingReqId);
   closePaymentModal();
 }
 
@@ -844,26 +1435,22 @@ function closePaymentModal() {
 
 // ─── TAB NAV ──────────────────────────────────────────────────────────────────
 function showTab(name) {
-  ['verbinden','transfer','rechner','verlauf'].forEach(t => {
+  ['verbinden','transfer','marktplatz','meinshop','inventar','rechner','verlauf'].forEach(t => {
     document.getElementById('tab-'+t).style.display = t === name ? 'block' : 'none';
     const btn = document.getElementById('nav-'+t);
     if (btn) btn.classList.toggle('active', t === name);
   });
-  if (name === 'verlauf') renderTxList();
+  if (name === 'verlauf')    renderTxList();
+  if (name === 'inventar')   renderInventar();
+  if (name === 'marktplatz') renderMarketSellerList();
+  if (name === 'meinshop')   { switchShopTab('produkte'); }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
-  // Kurz verbindung testen
-  try {
-    await db.from('accounts').select('id').limit(1);
-  } catch(e) {
-    console.error('Supabase Fehler:', e);
-  }
+  try { await db.from('accounts').select('id').limit(1); } catch(e) {}
   setLoading(false);
   document.getElementById('screen-login').classList.add('active');
-
-  // Pending payment request beim Tab-Wechsel prüfen
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && currentUser) checkPendingRequests();
   });
