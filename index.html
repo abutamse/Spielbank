@@ -1395,43 +1395,131 @@ async function loadResellInventory() {
     cache.inv = items; cache.invTs = now();
   }
   if (!items.length) { div.innerHTML = '<div class="empty-state"><div class="icon">🎒</div>Kein Inventar zum Weiterverkaufen.</div>'; return; }
-  div.innerHTML = items.map(item => {
-    const imgHtml = item.image_data
-      ? `<div class="my-product-thumb"><img src="${item.image_data}" /></div>`
-      : `<div class="my-product-thumb">${CAT_EMOJI[item.category]||'📦'}</div>`;
-    const usesLeft = item.uses_left !== null ? `· ${item.uses_left} Nutzungen übrig` : '';
-    return `<div class="my-product-row">
-      ${imgHtml}
-      <div class="my-product-info">
-        <div class="my-product-name">${item.name}<span class="resell-badge">Gekauft</span></div>
-        <div class="my-product-meta">${CAT_LABELS[item.category]||''} ${usesLeft}</div>
-        <input class="price-edit-input" type="number" id="resell-price-${item.id}" placeholder="Neuer Preis €" step="0.01" min="0" style="margin-top:4px;width:100%;" />
-      </div>
-      <button class="btn btn-blue btn-sm" onclick="resellItem('${item.id}')">↩️ Einstellen</button>
+
+  // Group items same as inventory view
+  const groups = groupInvItems(items);
+
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <span style="font-size:0.72rem;color:rgba(245,230,200,0.5);">${groups.length} Artikel-Gruppe${groups.length!==1?'n':''}</span>
+      <button class="btn btn-outline btn-sm" onclick="toggleAllResell()">Alle auswählen</button>
+    </div>
+    <div id="resell-groups">
+    ${groups.map((g, gi) => {
+      const item = g.representative;
+      const imgHtml = item.image_data
+        ? `<div class="my-product-thumb"><img src="${item.image_data}" /></div>`
+        : `<div class="my-product-thumb">${CAT_EMOJI[item.category]||'📦'}</div>`;
+      const usesLeft = item.uses_left !== null ? `· ${item.uses_left}× übrig` : '';
+      // encode ids as JSON in data attr
+      const idsAttr = encodeURIComponent(JSON.stringify(g.ids));
+      return `<div class="my-product-row" id="resell-group-${gi}" style="align-items:flex-start;flex-wrap:wrap;gap:8px;">
+        <input type="checkbox" id="resell-chk-${gi}" style="width:18px;height:18px;margin-top:12px;flex-shrink:0;cursor:pointer;accent-color:var(--gold);" data-gi="${gi}" data-ids="${idsAttr}" data-name="${item.name}" onchange="updateResellSubmitBtn()" />
+        ${imgHtml}
+        <div class="my-product-info" style="min-width:120px;">
+          <div class="my-product-name">${item.name}${g.count>1?`<span class="resell-badge">×${g.count}</span>`:''}</div>
+          <div class="my-product-meta">${CAT_LABELS[item.category]||''} ${usesLeft}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+            <input class="price-edit-input" type="number" id="resell-price-${gi}"
+              placeholder="Preis €" step="0.01" min="0"
+              style="width:90px;"
+              onchange="syncResellPrice(${gi}, this.value)"
+              oninput="syncResellPrice(${gi}, this.value)" />
+            <span style="font-size:0.7rem;color:rgba(245,230,200,0.4);">€ je Stück</span>
+          </div>
+          ${g.count>1?`<div style="font-size:0.68rem;color:rgba(245,230,200,0.35);margin-top:3px;">Preis gilt für alle ${g.count} Stücke</div>`:''}
+        </div>
+      </div>`;
+    }).join('')}
+    </div>
+    <div id="resell-submit-area" style="display:none;margin-top:14px;border-top:1px solid rgba(201,168,76,0.15);padding-top:14px;">
+      <div id="resell-summary" style="font-size:0.75rem;color:rgba(245,230,200,0.5);margin-bottom:10px;"></div>
+      <button class="btn btn-blue btn-full" onclick="resellSelected()">↩️ Ausgewählte in Shop einstellen</button>
     </div>`;
-  }).join('');
 }
 
-async function resellItem(invId) {
-  const priceInput = document.getElementById('resell-price-' + invId);
-  const newPrice = parseFloat(priceInput ? priceInput.value : 0);
-  if (!newPrice || newPrice <= 0) return showNotif('❌ Preis eingeben!');
-  const item = (cache.inv || []).find(i => i.id === invId) || (await db.from('inventory').select('*').eq('id', invId).single()).data;
-  if (!item) return;
+function syncResellPrice(gi, val) {
+  // nothing extra needed — price is read at submit time per group
+}
+
+let resellAllSelected = false;
+function toggleAllResell() {
+  resellAllSelected = !resellAllSelected;
+  document.querySelectorAll('#resell-groups input[type=checkbox]').forEach(cb => { cb.checked = resellAllSelected; });
+  updateResellSubmitBtn();
+}
+
+function updateResellSubmitBtn() {
+  const checked = [...document.querySelectorAll('#resell-groups input[type=checkbox]:checked')];
+  const area = document.getElementById('resell-submit-area');
+  const summary = document.getElementById('resell-summary');
+  if (!checked.length) { area.style.display = 'none'; return; }
+  area.style.display = 'block';
+  const names = checked.map(cb => {
+    const gi = cb.getAttribute('data-gi');
+    const ids = JSON.parse(decodeURIComponent(cb.getAttribute('data-ids')));
+    return `${cb.getAttribute('data-name')} (${ids.length}×)`;
+  });
+  summary.textContent = `Bereit: ${names.join(', ')}`;
+}
+
+async function resellSelected() {
+  const checked = [...document.querySelectorAll('#resell-groups input[type=checkbox]:checked')];
+  if (!checked.length) return showNotif('❌ Nichts ausgewählt!');
+
+  // Validate all have a price
+  for (const cb of checked) {
+    const gi = cb.getAttribute('data-gi');
+    const price = parseFloat(document.getElementById('resell-price-' + gi)?.value || 0);
+    if (!price || price <= 0) return showNotif(`❌ Preis für "${cb.getAttribute('data-name')}" fehlt!`);
+  }
+
+  // Build all operations
+  const productInserts = [];
+  const invIds = [];
+
+  for (const cb of checked) {
+    const gi = cb.getAttribute('data-gi');
+    const ids = JSON.parse(decodeURIComponent(cb.getAttribute('data-ids')));
+    const price = parseFloat(document.getElementById('resell-price-' + gi).value);
+    const name = cb.getAttribute('data-name');
+    // Find representative item from cache for image/category
+    const item = (cache.inv || []).find(i => i.id === ids[0]);
+    if (!item) continue;
+
+    // One shop entry per item (stock = count of ids)
+    productInserts.push({
+      seller: currentUser.name,
+      name: item.name,
+      category: item.category,
+      price,
+      stock: ids.length,
+      image_data: item.image_data || null,
+      active: true,
+      description: `Weiterverkauf${ids.length > 1 ? ` (${ids.length}× gebraucht)` : ' (gebraucht)'}`
+    });
+    ids.forEach(id => invIds.push(id));
+  }
+
+  // Parallel: create shop products + deactivate inventory items
   await Promise.all([
-    db.from('products').insert({ seller: currentUser.name, name: item.name, category: item.category, price: newPrice, stock: 1, image_data: item.image_data || null, active: true, description: 'Weiterverkauf (gebraucht)' }),
-    db.from('inventory').update({ active: false }).eq('id', invId)
+    db.from('products').insert(productInserts),
+    db.from('inventory').update({ active: false }).in('id', invIds)
   ]);
-  cache.inv = null; cache.myProds = null; // invalidate both
-  showNotif('✅ ' + item.name + ' für ' + fmt(newPrice) + ' in Shop eingestellt!');
+
+  // Update cache
+  if (cache.inv) cache.inv = cache.inv.filter(i => !invIds.includes(i.id));
+  cache.myProds = null;
+
+  showNotif(`✅ ${productInserts.length} Produkt${productInserts.length!==1?'e':''} (${invIds.length} Stück) in Shop eingestellt!`);
   loadResellInventory();
 }
 
-async function resellFromModal() {
+function resellFromModal() {
   if (!currentUseItem) return;
   closeUseModal();
-  switchShopTab('resell');
   showTab('meinshop');
+  setTimeout(() => switchShopTab('resell'), 50);
 }
 
 // ─── INVENTAR (CACHED) ────────────────────────────────────────────────────────
@@ -1453,6 +1541,21 @@ async function renderInventar(forceRefresh=false) {
   renderInvGrid(cache.inv);
 }
 
+function groupInvItems(items) {
+  // Group by product_id if present, else by name+category
+  const groups = new Map();
+  for (const item of items) {
+    const key = item.product_id ? 'pid_' + item.product_id : 'name_' + item.name + '_' + item.category;
+    if (!groups.has(key)) {
+      groups.set(key, { representative: item, ids: [], category: item.category, count: 0 });
+    }
+    const g = groups.get(key);
+    g.ids.push(item.id);
+    g.count++;
+  }
+  return [...groups.values()];
+}
+
 function renderInvGrid(allItems) {
   const grid = document.getElementById('inv-grid');
   const filtered = invFilter === 'alle' ? allItems : allItems.filter(i => i.category === invFilter);
@@ -1466,14 +1569,21 @@ function renderInvGrid(allItems) {
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🎒</div>Noch nichts in dieser Kategorie.</div>';
     return;
   }
-  grid.innerHTML = filtered.map(item => {
+
+  const groups = groupInvItems(filtered);
+
+  grid.innerHTML = groups.map(g => {
+    const item = g.representative;
     const imgHtml = item.image_data
       ? `<div class="inv-img"><img src="${item.image_data}" /></div>`
       : `<div class="inv-img">${CAT_EMOJI[item.category]||'📦'}</div>`;
+    const qtyBadge = g.count > 1
+      ? `<div style="position:absolute;top:6px;left:6px;background:rgba(201,168,76,0.9);color:#0e2018;border-radius:12px;padding:2px 8px;font-size:0.7rem;font-weight:700;">×${g.count}</div>`
+      : '';
     let actionBtn = '', usesInfo = '';
     if (item.category === 'essen') {
       actionBtn = `<button class="inv-action" style="background:linear-gradient(135deg,#0d5c34,#1a9c58);color:white;" onclick="openUseModal('${item.id}')">🍽️ Essen</button>`;
-      usesInfo = `<div style="font-size:0.65rem;color:rgba(245,230,200,0.4);">1× verwendbar</div>`;
+      usesInfo = `<div style="font-size:0.65rem;color:rgba(245,230,200,0.4);">je 1× verwendbar</div>`;
     } else if (item.category === 'kleidung') {
       const uses = item.uses_left !== null ? item.uses_left : 10;
       const useDots = Array(10).fill(0).map((_,i) => `<span class="use-dot ${i >= uses ? 'used' : ''}"></span>`).join('');
@@ -1482,9 +1592,9 @@ function renderInvGrid(allItems) {
     } else {
       actionBtn = `<button class="inv-action" style="background:rgba(201,168,76,0.15);color:var(--gold);border:1px solid var(--gold-dark);" onclick="openUseModal('${item.id}')">👁️ Ansehen</button>`;
     }
-    return `<div class="inv-card">${imgHtml}<div class="inv-info">
+    return `<div class="inv-card" style="position:relative;">${imgHtml}${qtyBadge}<div class="inv-info">
       <div class="inv-name">${item.name}</div>
-      <div class="inv-meta">${CAT_LABELS[item.category]||''}</div>
+      <div class="inv-meta">${CAT_LABELS[item.category]||''}${g.count > 1 ? ' · <strong style="color:var(--gold);">'+g.count+' Stück</strong>' : ''}</div>
       ${usesInfo}${actionBtn}
     </div></div>`;
   }).join('');
