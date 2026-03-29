@@ -332,16 +332,9 @@
   .item-list { margin-top: 8px; }
   .item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(201,168,76,0.08); font-size: 0.75rem; }
   .item-row button { background: none; border: none; color: #ff8080; cursor: pointer; font-size: 0.85rem; padding: 0 4px; }
+  /* Skeleton loader */
   .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px; }
   @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-
-  /* Buy button spinner */
-  .btn-spinner {
-    display: inline-block; width: 14px; height: 14px;
-    border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
-    border-radius: 50%; animation: spin 0.6s linear infinite;
-    vertical-align: middle; margin-right: 6px;
-  }
 </style>
 </head>
 <body>
@@ -680,13 +673,18 @@ let invFilter     = 'alle';
 let marketSeller  = null;
 let marketProductsCache = {};
 
+// ─── LOCAL CACHES (key=username or seller name) ────────────────────────────
 const cache = {
-  tx: null, txTs: 0,
-  inv: null, invTs: 0,
-  myProds: null, myProdsTs: 0,
-  marketProds: {},
-  TTL_FAST: 8000,
-  TTL_SLOW: 20000,
+  tx: null,          // transaction list HTML
+  txTs: 0,           // last fetch timestamp
+  inv: null,         // inventory items array
+  invTs: 0,
+  myProds: null,     // my shop products array
+  myProdsTs: 0,
+  marketProds: {},   // { sellerName: { items:[], ts:0 } }
+  TTL_FAST: 8000,    // 8s for fast-changing data
+  TTL_SLOW: 20000,   // 20s for slower data
+  dirty: new Set(),  // which caches need refresh
 };
 
 const CAT_LABELS = { essen:'🍔 Essen', kleidung:'👕 Kleidung', wohnung:'🏠 Wohnung', moebel:'🛋️ Möbel', transport:'🚗 Transport' };
@@ -697,7 +695,6 @@ const CAT_USES   = { essen: 1, kleidung: 10 };
 const fmt  = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
 const fmtN = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
 const now  = () => Date.now();
-const round2 = n => Math.round(n * 100) / 100;
 
 function showNotif(msg) {
   const b = document.getElementById('notification-bar');
@@ -712,16 +709,6 @@ function showStatus(id, msg, ok) {
   setTimeout(() => { if(el) el.classList.remove('show'); }, 3500);
 }
 function setLoading(on) { document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none'; }
-
-function setBuyBtnState(loading) {
-  const btn = document.getElementById('confirm-buy-btn');
-  if (!btn) return;
-  btn.disabled = loading;
-  btn.innerHTML = loading
-    ? '<span class="btn-spinner"></span>Wird gekauft...'
-    : '🛒 Kaufen';
-}
-
 function setBtnLoading(id, loading, label) {
   const btn = document.getElementById(id);
   if (!btn) return;
@@ -729,6 +716,7 @@ function setBtnLoading(id, loading, label) {
   btn.textContent = loading ? '...' : label;
 }
 
+// ─── BALANCE BUMP ANIMATION ───────────────────────────────────────────────────
 function updateBalanceDisplay(newBalance, animate=true) {
   const el = document.getElementById('dash-balance');
   if (!el) return;
@@ -782,6 +770,7 @@ async function loginAccount() {
 function logout() {
   realtimeSubs.forEach(s => db.removeChannel(s));
   realtimeSubs = []; currentUser = null;
+  // clear caches
   cache.tx = null; cache.inv = null; cache.myProds = null; cache.marketProds = {};
   document.getElementById('screen-dashboard').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
@@ -811,6 +800,7 @@ function startRealtimeSubscriptions() {
   realtimeSubs.forEach(s => db.removeChannel(s));
   realtimeSubs = [];
 
+  // Account balance changes
   const accSub = db.channel('account-' + currentUser.id)
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'accounts', filter: `id=eq.${currentUser.id}` }, payload => {
       currentUser = { ...currentUser, ...payload.new };
@@ -819,21 +809,35 @@ function startRealtimeSubscriptions() {
     }).subscribe();
   realtimeSubs.push(accSub);
 
+  // Incoming payment requests
   const reqSub = db.channel('payment-req-' + currentUser.name)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payment_requests', filter: `to_user=eq.${currentUser.name}` }, payload => {
       if (payload.new.status === 'pending') showPaymentModal(payload.new);
     }).subscribe();
   realtimeSubs.push(reqSub);
 
+  // Transactions — invalidate cache, refresh if tab is visible
   const txSub = db.channel('tx-' + currentUser.name)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, payload => {
       const t = payload.new;
       if (t.from_user === currentUser.name || t.to_user === currentUser.name) {
-        cache.tx = null;
-        if (document.getElementById('tab-verlauf').style.display !== 'none') renderTxList();
+        cache.tx = null; // invalidate
+        const verlaufVisible = document.getElementById('tab-verlauf').style.display !== 'none';
+        if (verlaufVisible) renderTxList();
       }
     }).subscribe();
   realtimeSubs.push(txSub);
+}
+
+async function refreshBalance() {
+  const { data } = await db.from('accounts').select('balance,connections').eq('id', currentUser.id).single();
+  if (data) {
+    currentUser.balance = data.balance;
+    currentUser.connections = data.connections;
+    updateBalanceDisplay(data.balance);
+    renderTransferSelects();
+    renderMarketSellerList();
+  }
 }
 
 // ─── CONNECT ──────────────────────────────────────────────────────────────────
@@ -850,6 +854,7 @@ async function connectToAccount() {
   const otherConns = [...(other.connections||[])];
   if (!otherConns.includes(currentUser.name)) otherConns.push(currentUser.name);
 
+  // Parallel update
   await Promise.all([
     db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id),
     db.from('accounts').update({ connections: otherConns }).eq('id', other.id)
@@ -883,6 +888,7 @@ function renderConnectedList() {
 
 async function disconnectFrom(name) {
   const myConns = (currentUser.connections||[]).filter(n => n !== name);
+  // Parallel: update self + fetch & update other
   const [, otherRes] = await Promise.all([
     db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id),
     db.from('accounts').select('*').eq('name', name).single()
@@ -906,7 +912,7 @@ function renderTransferSelects() {
   document.getElementById('payment-req-to').innerHTML = opts;
 }
 
-// ─── TRANSFER ────────────────────────────────────────────────────────────────
+// ─── TRANSFER (OPTIMISTIC) ────────────────────────────────────────────────────
 async function sendMoney() {
   const toName = document.getElementById('transfer-to').value;
   const amount = parseFloat(document.getElementById('transfer-amount').value);
@@ -915,35 +921,45 @@ async function sendMoney() {
   if (!amount || amount <= 0) return showStatus('transfer-status','Betrag eingeben!', false);
   if (amount > currentUser.balance) return showStatus('transfer-status','Nicht genug Guthaben!', false);
 
+  // Optimistic update
   const prevBalance = currentUser.balance;
-  currentUser.balance = round2(currentUser.balance - amount);
+  currentUser.balance = Math.round((currentUser.balance - amount) * 100) / 100;
   updateBalanceDisplay(currentUser.balance);
   setBtnLoading('send-money-btn', true, '💸 Jetzt senden');
 
   try {
+    // Parallel: fresh balance + receiver account
     const [selfRes, toRes] = await Promise.all([
       db.from('accounts').select('balance').eq('id', currentUser.id).single(),
       db.from('accounts').select('*').eq('name', toName).single()
     ]);
+
     if (!selfRes.data) throw new Error('Fehler beim Laden des Kontos!');
     if (amount > selfRes.data.balance) throw new Error('Nicht genug Guthaben!');
     if (!toRes.data) throw new Error('Empfänger nicht gefunden!');
 
-    await Promise.all([
-      db.from('accounts').update({ balance: round2(selfRes.data.balance - amount) }).eq('id', currentUser.id),
-      db.from('accounts').update({ balance: round2(toRes.data.balance + amount) }).eq('id', toRes.data.id),
+    // Parallel: deduct + credit + log
+    const [e1] = await Promise.all([
+      db.from('accounts').update({ balance: selfRes.data.balance - amount }).eq('id', currentUser.id),
+      db.from('accounts').update({ balance: toRes.data.balance + amount }).eq('id', toRes.data.id),
       db.from('transactions').insert({ from_user: currentUser.name, to_user: toName, amount, note })
     ]);
+    if (e1.error) throw new Error(e1.error.message);
 
-    currentUser.balance = round2(selfRes.data.balance - amount);
+    // Confirm real balance
+    currentUser.balance = selfRes.data.balance - amount;
     updateBalanceDisplay(currentUser.balance, false);
-    cache.tx = null;
+
+    cache.tx = null; // invalidate tx cache
     showStatus('transfer-status', `✅ ${fmt(amount)} an ${toName} gesendet!`, true);
     showNotif(`💸 ${fmt(amount)} an ${toName} gesendet`);
     document.getElementById('transfer-amount').value = '';
     document.getElementById('transfer-note').value   = '';
+    // Refresh tx list if visible
     if (document.getElementById('tab-verlauf').style.display !== 'none') renderTxList();
+
   } catch (err) {
+    // Rollback optimistic
     currentUser.balance = prevBalance;
     updateBalanceDisplay(prevBalance, false);
     showStatus('transfer-status','❌ ' + err.message, false);
@@ -952,14 +968,23 @@ async function sendMoney() {
   }
 }
 
-// ─── TRANSACTIONS ─────────────────────────────────────────────────────────────
+// ─── TRANSACTIONS (CACHED) ────────────────────────────────────────────────────
 async function renderTxList() {
   const list = document.getElementById('tx-list');
-  if (cache.tx && (now() - cache.txTs < cache.TTL_FAST)) { list.innerHTML = cache.tx; return; }
+
+  // Show cached immediately, then refresh if stale
+  if (cache.tx && (now() - cache.txTs < cache.TTL_FAST)) {
+    list.innerHTML = cache.tx;
+    return;
+  }
+
+  // Show skeleton while loading
   if (!cache.tx) list.innerHTML = '<div class="skeleton" style="height:40px;margin-bottom:6px;"></div>'.repeat(5);
+
   const { data: txs } = await db.from('transactions')
     .select('*').or(`from_user.eq.${currentUser.name},to_user.eq.${currentUser.name}`)
     .order('created_at', { ascending: false }).limit(40);
+
   if (!txs || !txs.length) {
     cache.tx = '<p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p>';
   } else {
@@ -1007,17 +1032,21 @@ function closeMarketSeller() {
 async function loadMarketProducts(sellerName, forceRefresh=false) {
   const cached = cache.marketProds[sellerName];
   const fresh = !forceRefresh && cached && (now() - cached.ts < cache.TTL_FAST);
+
   let products;
   if (fresh) {
     products = cached.items;
   } else {
+    // Show skeleton
     document.getElementById('market-product-grid').innerHTML =
       '<div class="skeleton" style="height:200px;border-radius:10px;"></div>'.repeat(4);
+
     const { data } = await db.from('products')
       .select('*').eq('seller', sellerName).eq('active', true).order('created_at', { ascending: false });
     products = data || [];
     cache.marketProds[sellerName] = { items: products, ts: now() };
   }
+
   marketProductsCache = {};
   products.forEach(p => { marketProductsCache[p.id] = p; });
   renderMarketCatFilter(products);
@@ -1035,6 +1064,7 @@ function setMarketFilter(cat, el) {
   marketFilter = cat;
   document.querySelectorAll('#market-cat-filter .cat-chip').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
+  // Filter client-side — no new DB call
   const products = marketSeller && cache.marketProds[marketSeller] ? cache.marketProds[marketSeller].items : [];
   renderMarketGrid(products);
 }
@@ -1082,12 +1112,12 @@ function openBuyModal(product) {
   document.getElementById('buy-modal-stock').textContent  = p.stock + ' Stück';
   document.getElementById('buy-qty-display').textContent  = 1;
   document.getElementById('buy-modal-status').className   = 'status-msg';
-  setBuyBtnState(false);
+  setBtnLoading('confirm-buy-btn', false, '🛒 Kaufen');
   document.getElementById('buy-modal').classList.add('show');
 }
 
 function changeBuyQty(delta) {
-  if (!currentBuyProduct || buyInProgress) return;
+  if (!currentBuyProduct) return;
   buyQty = Math.max(1, Math.min(currentBuyProduct.stock, buyQty + delta));
   document.getElementById('buy-qty-display').textContent = buyQty;
 }
@@ -1096,98 +1126,89 @@ function closeBuyModal() {
   document.getElementById('buy-modal').classList.remove('show');
   currentBuyProduct = null;
   buyInProgress = false;
-  setBuyBtnState(false);
 }
 
-// ─── CONFIRM BUY — OPTIMISED ──────────────────────────────────────────────────
-// Strategy:
-//  1. Instant pre-check on local state (no round-trip)
-//  2. Optimistic UI update immediately
-//  3. Single parallel fetch: [self balance, product stock+seller] in one round-trip
-//  4. Parallel writes: [stock update, buyer deduct, seller credit, tx log, inventory insert]
-//  5. On any error: rollback optimistic state and re-enable button
 async function confirmBuy() {
   if (buyInProgress) return;
   const p = currentBuyProduct;
   if (!p) return;
-
-  const total = round2(p.price * buyQty);
-
-  // ── Local pre-checks (instant, no network) ──
+  const total = p.price * buyQty;
   if (total > currentUser.balance) return showStatus('buy-modal-status','Nicht genug Guthaben!', false);
-  if (buyQty > p.stock)            return showStatus('buy-modal-status','Nicht genug Lager!', false);
+  if (buyQty > p.stock) return showStatus('buy-modal-status','Nicht genug Lager!', false);
   if (p.seller === currentUser.name) return showStatus('buy-modal-status','Du kannst nicht dein eigenes Produkt kaufen!', false);
 
   buyInProgress = true;
-  setBuyBtnState(true);
-
-  // ── Optimistic balance deduction ──
-  const prevBalance = currentUser.balance;
-  currentUser.balance = round2(currentUser.balance - total);
-  updateBalanceDisplay(currentUser.balance);
+  setBtnLoading('confirm-buy-btn', true, '🛒 Kaufen');
 
   try {
-    // ── Round-trip 1: fetch self balance + product + seller in parallel ──
-    const [selfRes, prodRes, sellerRes] = await Promise.all([
+    // Parallel: fresh self balance + fresh product info
+    const [selfRes, prodRes] = await Promise.all([
       db.from('accounts').select('balance').eq('id', currentUser.id).single(),
-      db.from('products').select('id,stock,active,seller,price').eq('id', p.id).single(),
-      db.from('accounts').select('id,balance').eq('name', p.seller).single()
+      db.from('products').select('stock,active,seller').eq('id', p.id).single()
     ]);
 
-    // Server-side validation
-    if (!selfRes.data)  throw new Error('Konto laden fehlgeschlagen');
+    if (!selfRes.data) throw new Error('Konto laden fehlgeschlagen');
     if (total > selfRes.data.balance) throw new Error('Nicht genug Guthaben!');
-    if (!prodRes.data)  throw new Error('Produkt nicht gefunden');
+    if (!prodRes.data) throw new Error('Produkt nicht gefunden');
     if (!prodRes.data.active) throw new Error('Produkt nicht mehr verfügbar');
-    if (buyQty > prodRes.data.stock) throw new Error(`Nur noch ${prodRes.data.stock} Stück verfügbar!`);
-    if (!sellerRes.data) throw new Error('Verkäufer-Konto nicht gefunden');
+    if (buyQty > prodRes.data.stock) throw new Error('Nicht genug Lager!');
 
-    // ── Build inventory rows ──
-    const maxUses = CAT_USES[p.category] ?? null;
-    const invRows = Array.from({length: buyQty}, () => {
-      const row = { owner: currentUser.name, name: p.name, category: p.category, active: true };
-      if (p.id)         row.product_id = p.id;
-      if (p.price)      row.price_paid = p.price;
-      if (p.image_data) row.image_data = p.image_data;
-      if (maxUses !== null) { row.uses_left = maxUses; row.max_uses = maxUses; }
-      return row;
+    // Stock update
+    const { error: stockErr } = await db.from('products').update({ stock: prodRes.data.stock - buyQty }).eq('id', p.id);
+    if (stockErr) throw new Error('Lager-Fehler: ' + stockErr.message);
+
+    // Parallel: deduct buyer + fetch seller balance
+    const [buyerRes, sellerRes] = await Promise.all([
+      db.from('accounts').update({ balance: selfRes.data.balance - total }).eq('id', currentUser.id),
+      db.from('accounts').select('balance,id').eq('name', p.seller).single()
+    ]);
+    if (buyerRes.error) {
+      await db.from('products').update({ stock: prodRes.data.stock }).eq('id', p.id); // rollback
+      throw new Error('Zahlung fehlgeschlagen: ' + buyerRes.error.message);
+    }
+
+    // Parallel: credit seller + log tx + build inventory items
+    const maxUses = CAT_USES[p.category] || null;
+    const allInvItems = Array.from({length: buyQty}, () => {
+      const item = { owner: currentUser.name, name: p.name, category: p.category, active: true };
+      if (p.id)         item.product_id = p.id;
+      if (p.price)      item.price_paid = p.price;
+      if (p.image_data) item.image_data = p.image_data;
+      if (maxUses !== null) { item.uses_left = maxUses; item.max_uses = maxUses; }
+      return item;
     });
 
-    // ── Round-trip 2: all writes in parallel ──
-    const [stockRes, buyerRes, sellerUpdateRes, txRes, invRes] = await Promise.all([
-      db.from('products').update({ stock: prodRes.data.stock - buyQty }).eq('id', p.id),
-      db.from('accounts').update({ balance: round2(selfRes.data.balance - total) }).eq('id', currentUser.id),
-      db.from('accounts').update({ balance: round2(sellerRes.data.balance + total) }).eq('id', sellerRes.data.id),
-      db.from('transactions').insert({ from_user: currentUser.name, to_user: p.seller, amount: total, note: `Kauf: ${p.name}${buyQty>1?' x'+buyQty:''}` }),
-      db.from('inventory').insert(invRows)
-    ]);
+    const ops = [
+      db.from('transactions').insert({ from_user: currentUser.name, to_user: p.seller, amount: total, note: `Kauf: ${p.name} x${buyQty}` }),
+      db.from('inventory').insert(allInvItems)
+    ];
+    if (sellerRes.data) {
+      ops.push(db.from('accounts').update({ balance: sellerRes.data.balance + total }).eq('id', sellerRes.data.id));
+    }
+    const results = await Promise.all(ops);
+    const invResult = results[1];
+    if (invResult.error) {
+      showStatus('buy-modal-status', `⚠️ Kauf OK, Inventar-Fehler: ${invResult.error.message}`, false);
+    }
 
-    // Check for write errors
-    if (buyerRes.error)  throw new Error('Zahlung fehlgeschlagen: ' + buyerRes.error.message);
-    if (stockRes.error)  console.warn('Stock-Fehler (unkritisch):', stockRes.error.message);
-    if (invRes.error)    showStatus('buy-modal-status', `⚠️ Kauf OK, Inventar-Fehler: ${invRes.error.message}`, false);
-
-    // Confirm real balance
-    currentUser.balance = round2(selfRes.data.balance - total);
-    updateBalanceDisplay(currentUser.balance, false);
+    // Update local state
+    currentUser.balance = selfRes.data.balance - total;
+    updateBalanceDisplay(currentUser.balance);
 
     // Invalidate caches
-    cache.tx  = null;
+    cache.tx = null;
     cache.inv = null;
     if (cache.marketProds[p.seller]) cache.marketProds[p.seller].ts = 0;
 
     closeBuyModal();
-    showNotif(`🛒 ${p.name}${buyQty>1?' x'+buyQty:''} gekauft für ${fmt(total)}!`);
+    showNotif(`🛒 ${p.name} x${buyQty} gekauft für ${fmt(total)}!`);
     if (marketSeller) loadMarketProducts(marketSeller, true);
     if (document.getElementById('tab-verlauf').style.display !== 'none') renderTxList();
 
   } catch (err) {
-    // Rollback optimistic balance
-    currentUser.balance = prevBalance;
-    updateBalanceDisplay(prevBalance, false);
     showStatus('buy-modal-status', '❌ ' + err.message, false);
     buyInProgress = false;
-    setBuyBtnState(false);
+    setBtnLoading('confirm-buy-btn', false, '🛒 Kaufen');
   }
 }
 
@@ -1204,7 +1225,12 @@ function switchShopTab(t) {
 async function loadMyProducts(forceRefresh=false) {
   const div = document.getElementById('my-products-list');
   const stale = !cache.myProds || forceRefresh || (now() - cache.myProdsTs > cache.TTL_SLOW);
-  if (!stale && cache.myProds) { renderMyProducts(cache.myProds); return; }
+
+  if (!stale && cache.myProds) {
+    renderMyProducts(cache.myProds);
+    return;
+  }
+
   div.innerHTML = '<div class="skeleton" style="height:64px;border-radius:8px;margin-bottom:8px;"></div>'.repeat(3);
   const { data: prods } = await db.from('products').select('*').eq('seller', currentUser.name).eq('active', true).order('created_at', { ascending: false });
   cache.myProds = prods || [];
@@ -1242,6 +1268,7 @@ async function updateProductPrice(id, newPrice) {
   const price = parseFloat(newPrice);
   if (!price || price <= 0) return;
   await db.from('products').update({ price }).eq('id', id);
+  // Update cache
   if (cache.myProds) cache.myProds = cache.myProds.map(p => p.id === id ? {...p, price} : p);
   showNotif('✅ Preis aktualisiert!');
 }
@@ -1250,14 +1277,16 @@ async function addStock(id, current) {
   const add = parseInt(prompt('Wie viele Stück hinzufügen?', '1'));
   if (!add || add <= 0) return;
   await db.from('products').update({ stock: current + add }).eq('id', id);
-  cache.myProds = null;
+  cache.myProds = null; // invalidate
   loadMyProducts(true);
 }
 
 async function deleteProduct(id) {
   const row = document.getElementById('prodrow-' + id);
   if (row) row.style.opacity = '0.3';
+  // Optimistic: remove from cache
   if (cache.myProds) cache.myProds = cache.myProds.filter(p => p.id !== id);
+
   const { error } = await db.from('products').delete().eq('id', id).eq('seller', currentUser.name);
   if (error) {
     const { error: e2 } = await db.from('products').update({ active: false }).eq('id', id);
@@ -1342,6 +1371,7 @@ async function uploadProduct() {
   showStatus('upload-status','✅ Produkt hochgeladen!', true);
   showNotif('📤 ' + name + ' in deinen Shop eingestellt!');
 
+  // Reset form
   ['upload-name','upload-category','upload-price','upload-desc','upload-img-data','upload-img-input'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
@@ -1349,11 +1379,15 @@ async function uploadProduct() {
   const area = document.getElementById('upload-img-area');
   area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span>Bild auswählen oder hier tippen</span>';
   area.classList.remove('has-img');
-  cache.myProds = null;
+
+  cache.myProds = null; // invalidate
   setTimeout(() => switchShopTab('produkte'), 1200);
 }
 
 // ─── RESELL ───────────────────────────────────────────────────────────────────
+// resellState[gi] = { qty: number, price: number }
+const resellState = {};
+
 async function loadResellInventory() {
   const div = document.getElementById('resell-inv-list');
   let items = cache.inv;
@@ -1363,94 +1397,197 @@ async function loadResellInventory() {
     items = data || [];
     cache.inv = items; cache.invTs = now();
   }
-  if (!items.length) { div.innerHTML = '<div class="empty-state"><div class="icon">🎒</div>Kein Inventar zum Weiterverkaufen.</div>'; return; }
+  if (!items.length) {
+    div.innerHTML = '<div class="empty-state"><div class="icon">🎒</div>Kein Inventar zum Weiterverkaufen.</div>';
+    return;
+  }
 
   const groups = groupInvItems(items);
+
+  // Init state for each group (preserve existing price if re-rendering)
+  groups.forEach((g, gi) => {
+    if (!resellState[gi]) resellState[gi] = { qty: 0, price: null };
+    // clamp qty to available
+    resellState[gi].qty = Math.min(resellState[gi].qty, g.count);
+  });
+
   div.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <span style="font-size:0.72rem;color:rgba(245,230,200,0.5);">${groups.length} Artikel-Gruppe${groups.length!==1?'n':''}</span>
-      <button class="btn btn-outline btn-sm" onclick="toggleAllResell()">Alle auswählen</button>
+      <button class="btn btn-outline btn-sm" onclick="toggleAllResell(${groups.length})">Alle auswählen</button>
     </div>
     <div id="resell-groups">
-    ${groups.map((g, gi) => {
-      const item = g.representative;
-      const imgHtml = item.image_data
-        ? `<div class="my-product-thumb"><img src="${item.image_data}" /></div>`
-        : `<div class="my-product-thumb">${CAT_EMOJI[item.category]||'📦'}</div>`;
-      const usesLeft = item.uses_left !== null ? `· ${item.uses_left}× übrig` : '';
-      const idsAttr = encodeURIComponent(JSON.stringify(g.ids));
-      return `<div class="my-product-row" id="resell-group-${gi}" style="align-items:flex-start;flex-wrap:wrap;gap:8px;">
-        <input type="checkbox" id="resell-chk-${gi}" style="width:18px;height:18px;margin-top:12px;flex-shrink:0;cursor:pointer;accent-color:var(--gold);" data-gi="${gi}" data-ids="${idsAttr}" data-name="${item.name}" onchange="updateResellSubmitBtn()" />
-        ${imgHtml}
-        <div class="my-product-info" style="min-width:120px;">
-          <div class="my-product-name">${item.name}${g.count>1?`<span class="resell-badge">×${g.count}</span>`:''}</div>
-          <div class="my-product-meta">${CAT_LABELS[item.category]||''} ${usesLeft}</div>
-          <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
-            <input class="price-edit-input" type="number" id="resell-price-${gi}"
-              placeholder="Preis €" step="0.01" min="0" style="width:90px;" />
-            <span style="font-size:0.7rem;color:rgba(245,230,200,0.4);">€ je Stück</span>
-          </div>
-          ${g.count>1?`<div style="font-size:0.68rem;color:rgba(245,230,200,0.35);margin-top:3px;">Preis gilt für alle ${g.count} Stücke</div>`:''}
-        </div>
-      </div>`;
-    }).join('')}
+      ${groups.map((g, gi) => renderResellGroupRow(g, gi)).join('')}
     </div>
     <div id="resell-submit-area" style="display:none;margin-top:14px;border-top:1px solid rgba(201,168,76,0.15);padding-top:14px;">
-      <div id="resell-summary" style="font-size:0.75rem;color:rgba(245,230,200,0.5);margin-bottom:10px;"></div>
+      <div id="resell-summary" style="font-size:0.75rem;color:rgba(245,230,200,0.5);margin-bottom:10px;line-height:1.6;"></div>
       <button class="btn btn-blue btn-full" onclick="resellSelected()">↩️ Ausgewählte in Shop einstellen</button>
     </div>`;
+
+  updateResellSubmitBtn(groups);
 }
 
-let resellAllSelected = false;
-function toggleAllResell() {
-  resellAllSelected = !resellAllSelected;
-  document.querySelectorAll('#resell-groups input[type=checkbox]').forEach(cb => { cb.checked = resellAllSelected; });
-  updateResellSubmitBtn();
+function renderResellGroupRow(g, gi) {
+  const item = g.representative;
+  const state = resellState[gi] || { qty: 0, price: null };
+  const idsAttr = encodeURIComponent(JSON.stringify(g.ids));
+  const imgHtml = item.image_data
+    ? `<div class="my-product-thumb"><img src="${item.image_data}" /></div>`
+    : `<div class="my-product-thumb">${CAT_EMOJI[item.category]||'📦'}</div>`;
+  const isSelected = state.qty > 0;
+  const displayPrice = state.price !== null ? state.price : (item.price_paid || '');
+
+  return `<div class="my-product-row" id="resell-group-${gi}"
+      style="align-items:flex-start;gap:8px;border-color:${isSelected?'rgba(26,110,156,0.5)':'rgba(201,168,76,0.12)'};background:${isSelected?'rgba(26,110,156,0.08)':'rgba(0,0,0,0.2)'};transition:all 0.2s;">
+    ${imgHtml}
+    <div class="my-product-info" style="flex:1;min-width:0;">
+      <div class="my-product-name" style="margin-bottom:4px;">${item.name}${g.count>1?`<span class="resell-badge">×${g.count} vorhanden</span>`:''}</div>
+      <div class="my-product-meta" style="margin-bottom:8px;">${CAT_LABELS[item.category]||''}</div>
+
+      <!-- Menge -->
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <span style="font-size:0.68rem;color:rgba(245,230,200,0.4);width:52px;">MENGE</span>
+        <button onclick="changeResellQty(${gi}, -1, ${g.count})"
+          style="background:rgba(255,255,255,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:4px;color:var(--cream);width:26px;height:26px;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;">−</button>
+        <span id="resell-qty-${gi}" style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--gold);min-width:22px;text-align:center;">${state.qty}</span>
+        <button onclick="changeResellQty(${gi}, 1, ${g.count})"
+          style="background:rgba(255,255,255,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:4px;color:var(--cream);width:26px;height:26px;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;">+</button>
+        ${g.count>1?`<span style="font-size:0.65rem;color:rgba(245,230,200,0.3);">von ${g.count}</span>`:''}
+      </div>
+
+      <!-- Preis — immer sichtbar, inline editierbar -->
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:0.68rem;color:rgba(245,230,200,0.4);width:52px;">PREIS</span>
+        <div style="position:relative;display:flex;align-items:center;">
+          <input type="number" id="resell-price-${gi}"
+            value="${displayPrice}"
+            placeholder="0.00"
+            step="0.01" min="0"
+            style="width:80px;background:rgba(0,0,0,0.5);border:1px solid var(--gold-dark);border-radius:4px;
+                   color:var(--gold);padding:4px 22px 4px 8px;font-size:0.85rem;font-family:'DM Mono',monospace;
+                   text-align:right;outline:none;margin:0;"
+            onfocus="this.style.borderColor='var(--gold)'"
+            onblur="this.style.borderColor='var(--gold-dark)';saveResellPrice(${gi},this.value)"
+            oninput="saveResellPrice(${gi},this.value)" />
+          <span style="position:absolute;right:6px;font-size:0.7rem;color:rgba(245,230,200,0.4);pointer-events:none;">€</span>
+        </div>
+        <span style="font-size:0.65rem;color:rgba(245,230,200,0.3);">je Stück</span>
+      </div>
+    </div>
+  </div>`;
 }
 
-function updateResellSubmitBtn() {
-  const checked = [...document.querySelectorAll('#resell-groups input[type=checkbox]:checked')];
+function changeResellQty(gi, delta, maxCount) {
+  if (!resellState[gi]) resellState[gi] = { qty: 0, price: null };
+  const newQty = Math.max(0, Math.min(maxCount, resellState[gi].qty + delta));
+  resellState[gi].qty = newQty;
+
+  // Update qty display
+  const qtyEl = document.getElementById('resell-qty-' + gi);
+  if (qtyEl) qtyEl.textContent = newQty;
+
+  // Update row highlight
+  const row = document.getElementById('resell-group-' + gi);
+  if (row) {
+    row.style.borderColor = newQty > 0 ? 'rgba(26,110,156,0.5)' : 'rgba(201,168,76,0.12)';
+    row.style.background  = newQty > 0 ? 'rgba(26,110,156,0.08)' : 'rgba(0,0,0,0.2)';
+  }
+
+  // Rebuild submit area without full re-render
+  const groups = groupInvItems(cache.inv || []);
+  updateResellSubmitBtn(groups);
+}
+
+function saveResellPrice(gi, val) {
+  if (!resellState[gi]) resellState[gi] = { qty: 0, price: null };
+  const p = parseFloat(val);
+  resellState[gi].price = (!isNaN(p) && p > 0) ? p : null;
+  updateResellSubmitBtn(groupInvItems(cache.inv || []));
+}
+
+let resellAllToggle = false;
+function toggleAllResell(groupCount) {
+  resellAllToggle = !resellAllToggle;
+  const groups = groupInvItems(cache.inv || []);
+  groups.forEach((g, gi) => {
+    if (!resellState[gi]) resellState[gi] = { qty: 0, price: null };
+    resellState[gi].qty = resellAllToggle ? g.count : 0;
+    const qtyEl = document.getElementById('resell-qty-' + gi);
+    if (qtyEl) qtyEl.textContent = resellState[gi].qty;
+    const row = document.getElementById('resell-group-' + gi);
+    if (row) {
+      row.style.borderColor = resellAllToggle ? 'rgba(26,110,156,0.5)' : 'rgba(201,168,76,0.12)';
+      row.style.background  = resellAllToggle ? 'rgba(26,110,156,0.08)' : 'rgba(0,0,0,0.2)';
+    }
+  });
+  updateResellSubmitBtn(groups);
+}
+
+function updateResellSubmitBtn(groups) {
   const area = document.getElementById('resell-submit-area');
   const summary = document.getElementById('resell-summary');
-  if (!checked.length) { area.style.display = 'none'; return; }
+  if (!area || !groups) return;
+
+  const selected = groups.filter((g, gi) => resellState[gi] && resellState[gi].qty > 0);
+  if (!selected.length) { area.style.display = 'none'; return; }
+
   area.style.display = 'block';
-  const names = checked.map(cb => {
-    const ids = JSON.parse(decodeURIComponent(cb.getAttribute('data-ids')));
-    return `${cb.getAttribute('data-name')} (${ids.length}×)`;
+  const lines = selected.map((g, _) => {
+    const gi = groups.indexOf(g);
+    const state = resellState[gi];
+    const priceStr = state.price ? fmt(state.price) : '⚠️ kein Preis';
+    return `${g.representative.name} × ${state.qty} · ${priceStr}`;
   });
-  summary.textContent = `Bereit: ${names.join(', ')}`;
+  summary.innerHTML = lines.join('<br>');
 }
 
 async function resellSelected() {
-  const checked = [...document.querySelectorAll('#resell-groups input[type=checkbox]:checked')];
-  if (!checked.length) return showNotif('❌ Nichts ausgewählt!');
-  for (const cb of checked) {
-    const gi = cb.getAttribute('data-gi');
-    const price = parseFloat(document.getElementById('resell-price-' + gi)?.value || 0);
-    if (!price || price <= 0) return showNotif(`❌ Preis für "${cb.getAttribute('data-name')}" fehlt!`);
+  const groups = groupInvItems(cache.inv || []);
+  const toSell = groups.map((g, gi) => ({ g, gi, state: resellState[gi] || { qty: 0, price: null } }))
+    .filter(x => x.state.qty > 0);
+
+  if (!toSell.length) return showNotif('❌ Menge bei mindestens einem Artikel auf >0 setzen!');
+
+  for (const { g, state } of toSell) {
+    if (!state.price || state.price <= 0)
+      return showNotif(`❌ Preis für "${g.representative.name}" fehlt oder ungültig!`);
   }
+
   const productInserts = [];
-  const invIds = [];
-  for (const cb of checked) {
-    const gi = cb.getAttribute('data-gi');
-    const ids = JSON.parse(decodeURIComponent(cb.getAttribute('data-ids')));
-    const price = parseFloat(document.getElementById('resell-price-' + gi).value);
-    const item = (cache.inv || []).find(i => i.id === ids[0]);
-    if (!item) continue;
+  const invIdsToDeactivate = [];
+
+  for (const { g, state } of toSell) {
+    const item = g.representative;
+    // Take only the first `state.qty` ids from the group
+    const selectedIds = g.ids.slice(0, state.qty);
     productInserts.push({
-      seller: currentUser.name, name: item.name, category: item.category, price,
-      stock: ids.length, image_data: item.image_data || null, active: true,
-      description: `Weiterverkauf${ids.length > 1 ? ` (${ids.length}× gebraucht)` : ' (gebraucht)'}`
+      seller: currentUser.name,
+      name: item.name,
+      category: item.category,
+      price: state.price,
+      stock: state.qty,
+      image_data: item.image_data || null,
+      active: true,
+      description: `Weiterverkauf${state.qty > 1 ? ` (${state.qty}× gebraucht)` : ' (gebraucht)'}`
     });
-    ids.forEach(id => invIds.push(id));
+    selectedIds.forEach(id => invIdsToDeactivate.push(id));
   }
+
   await Promise.all([
     db.from('products').insert(productInserts),
-    db.from('inventory').update({ active: false }).in('id', invIds)
+    db.from('inventory').update({ active: false }).in('id', invIdsToDeactivate)
   ]);
-  if (cache.inv) cache.inv = cache.inv.filter(i => !invIds.includes(i.id));
+
+  // Update cache — remove only deactivated items
+  if (cache.inv) cache.inv = cache.inv.filter(i => !invIdsToDeactivate.includes(i.id));
   cache.myProds = null;
-  showNotif(`✅ ${productInserts.length} Produkt${productInserts.length!==1?'e':''} in Shop eingestellt!`);
+
+  // Reset qty in state for sold items
+  toSell.forEach(({ gi }) => { if (resellState[gi]) resellState[gi].qty = 0; });
+
+  const totalItems = toSell.length;
+  const totalStück = invIdsToDeactivate.length;
+  showNotif(`✅ ${totalItems} Produkt${totalItems!==1?'e':''} (${totalStück} Stück) in Shop eingestellt!`);
   loadResellInventory();
 }
 
@@ -1461,11 +1598,17 @@ function resellFromModal() {
   setTimeout(() => switchShopTab('resell'), 50);
 }
 
-// ─── INVENTAR ─────────────────────────────────────────────────────────────────
+// ─── INVENTAR (CACHED) ────────────────────────────────────────────────────────
 async function renderInventar(forceRefresh=false) {
   const grid = document.getElementById('inv-grid');
   const stale = !cache.inv || forceRefresh || (now() - cache.invTs > cache.TTL_SLOW);
-  if (!stale && cache.inv) { renderInvGrid(cache.inv); return; }
+
+  // Show cached immediately
+  if (!stale && cache.inv) {
+    renderInvGrid(cache.inv);
+    return;
+  }
+
   grid.innerHTML = '<div class="skeleton" style="height:180px;border-radius:8px;"></div>'.repeat(4);
   const { data: items } = await db.from('inventory')
     .select('*').eq('owner', currentUser.name).eq('active', true).order('created_at', { ascending: false });
@@ -1475,10 +1618,13 @@ async function renderInventar(forceRefresh=false) {
 }
 
 function groupInvItems(items) {
+  // Group by product_id if present, else by name+category
   const groups = new Map();
   for (const item of items) {
     const key = item.product_id ? 'pid_' + item.product_id : 'name_' + item.name + '_' + item.category;
-    if (!groups.has(key)) groups.set(key, { representative: item, ids: [], category: item.category, count: 0 });
+    if (!groups.has(key)) {
+      groups.set(key, { representative: item, ids: [], category: item.category, count: 0 });
+    }
     const g = groups.get(key);
     g.ids.push(item.id);
     g.count++;
@@ -1489,15 +1635,19 @@ function groupInvItems(items) {
 function renderInvGrid(allItems) {
   const grid = document.getElementById('inv-grid');
   const filtered = invFilter === 'alle' ? allItems : allItems.filter(i => i.category === invFilter);
+
   document.querySelectorAll('#inv-cat-filter .cat-chip').forEach(b => {
     const fn = b.getAttribute('onclick') || '';
     b.classList.toggle('active', fn.includes(`'${invFilter}'`));
   });
+
   if (!filtered.length) {
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🎒</div>Noch nichts in dieser Kategorie.</div>';
     return;
   }
+
   const groups = groupInvItems(filtered);
+
   grid.innerHTML = groups.map(g => {
     const item = g.representative;
     const imgHtml = item.image_data
@@ -1528,12 +1678,14 @@ function renderInvGrid(allItems) {
 
 function filterInv(cat) {
   invFilter = cat;
-  if (cache.inv) renderInvGrid(cache.inv);
+  // Client-side filter — no DB call needed
+  if (cache.inv) { renderInvGrid(cache.inv); }
   else renderInventar();
 }
 
 // ─── USE ITEM MODAL ───────────────────────────────────────────────────────────
 async function openUseModal(invId) {
+  // Try cache first
   let item = (cache.inv || []).find(i => i.id === invId);
   if (!item) {
     const { data } = await db.from('inventory').select('*').eq('id', invId).single();
@@ -1568,14 +1720,17 @@ async function useItem() {
   if (!currentUseItem) return;
   const item = currentUseItem;
   if (item.category === 'essen') {
+    // Optimistic: remove from cache immediately
     if (cache.inv) cache.inv = cache.inv.filter(i => i.id !== item.id);
     closeUseModal();
     showNotif(`🍽️ Lecker! ${item.name} gegessen!`);
     renderInvGrid(cache.inv || []);
+    // DB in background
     db.from('inventory').delete().eq('id', item.id).eq('owner', currentUser.name)
       .then(({error}) => { if (error) db.from('inventory').update({ active: false }).eq('id', item.id); });
   } else if (item.category === 'kleidung') {
     const usesLeft = (item.uses_left !== null ? item.uses_left : 10) - 1;
+    // Optimistic cache update
     if (cache.inv) cache.inv = cache.inv.map(i => i.id === item.id ? {...i, uses_left: usesLeft} : i);
     if (usesLeft <= 0) {
       if (cache.inv) cache.inv = cache.inv.filter(i => i.id !== item.id);
@@ -1605,7 +1760,7 @@ function calcInput(v) {
 function calcEquals() {
   try {
     let r = Function('"use strict";return (' + calcExpr + ')')();
-    r = round2(r); calcExpr = String(r); calcTotal = r;
+    r = Math.round(r * 100) / 100; calcExpr = String(r); calcTotal = r;
     document.getElementById('calc-display').textContent = fmt(r); updateCalcNote();
   } catch { document.getElementById('calc-display').textContent = 'Fehler'; calcExpr = '0'; }
 }
@@ -1620,7 +1775,7 @@ function addArtikel() {
   const preis = parseFloat(document.getElementById('artikel-preis').value);
   if (!name || !preis || preis <= 0) return;
   calcItems.push({ name, preis });
-  calcTotal = round2(calcItems.reduce((s,i) => s+i.preis, 0));
+  calcTotal = Math.round(calcItems.reduce((s,i) => s+i.preis, 0)*100)/100;
   calcExpr  = String(calcTotal);
   document.getElementById('calc-display').textContent = fmt(calcTotal);
   document.getElementById('artikel-name').value  = '';
@@ -1629,7 +1784,7 @@ function addArtikel() {
 }
 function removeItem(i) {
   calcItems.splice(i,1);
-  calcTotal = round2(calcItems.reduce((s,it) => s+it.preis,0));
+  calcTotal = Math.round(calcItems.reduce((s,it) => s+it.preis,0)*100)/100;
   calcExpr  = String(calcTotal);
   document.getElementById('calc-display').textContent = calcTotal > 0 ? fmt(calcTotal) : '0';
   renderItemList(); updateCalcNote();
@@ -1683,14 +1838,17 @@ async function acceptPaymentRequest() {
     const st = document.getElementById('modal-status');
     st.textContent = 'Nicht genug Guthaben!'; st.className = 'status-msg show status-err'; return;
   }
-  currentUser.balance = round2(balance - req.amount);
+
+  // Optimistic update
+  currentUser.balance = balance - req.amount;
   updateBalanceDisplay(currentUser.balance);
+
   const [fromRes] = await Promise.all([
     db.from('accounts').select('*').eq('name', req.from_user).single(),
-    db.from('accounts').update({ balance: round2(balance - req.amount) }).eq('id', currentUser.id)
+    db.from('accounts').update({ balance: balance - req.amount }).eq('id', currentUser.id)
   ]);
   if (fromRes.data) {
-    await db.from('accounts').update({ balance: round2(fromRes.data.balance + req.amount) }).eq('id', fromRes.data.id);
+    await db.from('accounts').update({ balance: fromRes.data.balance + req.amount }).eq('id', fromRes.data.id);
   }
   await Promise.all([
     db.from('transactions').insert({
@@ -1723,6 +1881,7 @@ function showTab(name) {
     const btn = document.getElementById('nav-'+t);
     if (btn) btn.classList.toggle('active', t === name);
   });
+  // Only load when tab becomes visible, use cache when possible
   if (name === 'verlauf')    renderTxList();
   if (name === 'inventar')   renderInventar();
   if (name === 'marktplatz') renderMarketSellerList();
