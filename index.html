@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title> Spielbank & Marktplatz</title>
+<title>Spielbank & Marktplatz</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -125,7 +125,9 @@
     font-size: clamp(2.2rem, 7vw, 4rem);
     font-weight: 900; color: var(--gold);
     text-shadow: 0 0 20px rgba(201,168,76,0.4); line-height: 1;
+    transition: transform 0.15s ease;
   }
+  .balance-amount.bump { transform: scale(1.06); }
   .balance-label { font-size: 0.7rem; letter-spacing: 3px; color: rgba(245,230,200,0.4); margin-top: 4px; }
   .user-name-display { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--cream); margin-bottom: 4px; }
   .status-msg { padding: 8px 12px; border-radius: 6px; font-size: 0.78rem; margin-bottom: 10px; display: none; letter-spacing: 0.5px; }
@@ -205,7 +207,6 @@
     border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-
   .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
   @media(max-width: 480px) { .shop-grid { grid-template-columns: repeat(2, 1fr); } }
   .product-card {
@@ -284,7 +285,6 @@
   .inv-name { font-size: 0.8rem; color: var(--cream); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .inv-meta { font-size: 0.67rem; color: rgba(245,230,200,0.4); margin-bottom: 6px; }
   .inv-action { width: 100%; padding: 6px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-family: 'DM Mono', monospace; font-weight: 700; letter-spacing: 0.5px; }
-
   .img-upload-area {
     border: 2px dashed var(--gold-dark); border-radius: 8px;
     padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s;
@@ -332,20 +332,14 @@
   .item-list { margin-top: 8px; }
   .item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(201,168,76,0.08); font-size: 0.75rem; }
   .item-row button { background: none; border: none; color: #ff8080; cursor: pointer; font-size: 0.85rem; padding: 0 4px; }
+  /* Skeleton loader */
+  .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px; }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 </style>
 </head>
 <body>
 
 <div id="notification-bar">🔔</div>
-
-<!-- DEBUG PANEL -->
-<div id="debug-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;background:#0a1810;border-top:2px solid var(--gold);max-height:50vh;overflow-y:auto;padding:12px 16px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-    <span style="color:var(--gold);font-size:0.8rem;font-weight:700;">🐛 DEBUG LOG</span>
-    <button onclick="toggleDebug()" style="background:none;border:1px solid var(--gold-dark);color:var(--cream);padding:3px 10px;border-radius:4px;cursor:pointer;font-size:0.72rem;">Schließen</button>
-  </div>
-  <div id="debug-output" style="font-family:monospace;"></div>
-</div>
 
 <div class="loading-overlay" id="loading-overlay">
   <div class="loading-spinner"></div>
@@ -418,7 +412,6 @@
         <button class="btn btn-outline btn-sm" onclick="showTab('rechner')">🧮 Rechner</button>
         <button class="btn btn-outline btn-sm" onclick="showTab('verlauf')">📜 Verlauf</button>
         <button class="btn btn-red btn-sm" onclick="logout()">Abmelden</button>
-        <button class="btn btn-outline btn-sm" onclick="toggleDebug()" style="border-color:rgba(201,168,76,0.3);color:rgba(245,230,200,0.4);font-size:0.65rem;">🐛 Debug</button>
       </div>
     </div>
 
@@ -466,7 +459,7 @@
       <div class="label">Grund (optional)</div>
       <input type="text" id="transfer-note" placeholder="z.B. Bier, Einsatz..." />
       <div id="transfer-status" class="status-msg"></div>
-      <button class="btn btn-green btn-full" onclick="sendMoney()">💸 Jetzt senden</button>
+      <button class="btn btn-green btn-full" id="send-money-btn" onclick="sendMoney()">💸 Jetzt senden</button>
     </div>
 
     <!-- MARKTPLATZ TAB -->
@@ -495,13 +488,11 @@
         <button class="tab-btn" id="shop-tab-upload" onclick="switchShopTab('upload')">+ Produkt hochladen</button>
         <button class="tab-btn" id="shop-tab-resell" onclick="switchShopTab('resell')">↩️ Weiterverkaufen</button>
       </div>
-
       <div id="shop-produkte">
         <div id="my-products-list">
           <div class="empty-state"><div class="icon">📦</div>Noch keine Produkte hochgeladen.</div>
         </div>
       </div>
-
       <div id="shop-upload" style="display:none">
         <h3>Neues Produkt hochladen</h3>
         <div class="label">Produktbild</div>
@@ -533,7 +524,6 @@
         <div id="upload-status" class="status-msg"></div>
         <button class="btn btn-gold btn-full" id="upload-btn" onclick="uploadProduct()">📤 Produkt hochladen</button>
       </div>
-
       <div id="shop-resell" style="display:none">
         <h3>Inventar-Artikel weiterverkaufen</h3>
         <p style="font-size:0.75rem;color:rgba(245,230,200,0.4);margin-bottom:12px;">Wähle einen gekauften Artikel aus deinem Inventar und stelle ihn in deinen Shop.</p>
@@ -602,7 +592,6 @@
       <h2>📜 Transaktionsverlauf</h2>
       <div class="tx-list" id="tx-list"><p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p></div>
     </div>
-
   </div>
 </div>
 
@@ -662,33 +651,7 @@
 </div>
 
 <script>
-// ─── DEBUG LOG ────────────────────────────────────────────────────────────────
-const debugEntries = [];
-function debugLog(label, data) {
-  const entry = { label, data, time: new Date().toLocaleTimeString('de-DE') };
-  debugEntries.unshift(entry);
-  if (debugEntries.length > 20) debugEntries.pop();
-  const panel = document.getElementById('debug-panel');
-  if (panel && panel.style.display !== 'none') renderDebugPanel();
-  console.log('[DEBUG]', label, data);
-}
-function renderDebugPanel() {
-  const out = document.getElementById('debug-output');
-  if (!out) return;
-  out.innerHTML = debugEntries.map(e =>
-    `<div style="border-bottom:1px solid rgba(201,168,76,0.15);padding:6px 0;font-size:0.7rem;">
-      <span style="color:var(--gold);">[${e.time}] ${e.label}</span><br>
-      <pre style="color:rgba(245,230,200,0.7);white-space:pre-wrap;word-break:break-all;margin-top:3px;">${JSON.stringify(e.data, null, 2)}</pre>
-    </div>`
-  ).join('');
-}
-function toggleDebug() {
-  const p = document.getElementById('debug-panel');
-  p.style.display = p.style.display === 'none' ? 'block' : 'none';
-  if (p.style.display !== 'none') renderDebugPanel();
-}
-
-// ─── SUPABASE INIT ────────────────────────────────────────────────────────────
+// ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const SUPA_URL = 'https://rfnciohajcemftuzefkx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmbmNpb2hhamNlbWZ0dXplZmt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NzE5NDcsImV4cCI6MjA5MDI0Nzk0N30.L-K0IuyNqHudLI9R-RIsu26aawXtRsz16sjoMtn04Fk';
 const { createClient } = supabase;
@@ -710,6 +673,20 @@ let invFilter     = 'alle';
 let marketSeller  = null;
 let marketProductsCache = {};
 
+// ─── LOCAL CACHES (key=username or seller name) ────────────────────────────
+const cache = {
+  tx: null,          // transaction list HTML
+  txTs: 0,           // last fetch timestamp
+  inv: null,         // inventory items array
+  invTs: 0,
+  myProds: null,     // my shop products array
+  myProdsTs: 0,
+  marketProds: {},   // { sellerName: { items:[], ts:0 } }
+  TTL_FAST: 8000,    // 8s for fast-changing data
+  TTL_SLOW: 20000,   // 20s for slower data
+  dirty: new Set(),  // which caches need refresh
+};
+
 const CAT_LABELS = { essen:'🍔 Essen', kleidung:'👕 Kleidung', wohnung:'🏠 Wohnung', moebel:'🛋️ Möbel', transport:'🚗 Transport' };
 const CAT_EMOJI  = { essen:'🍔', kleidung:'👕', wohnung:'🏠', moebel:'🛋️', transport:'🚗' };
 const CAT_USES   = { essen: 1, kleidung: 10 };
@@ -717,6 +694,7 @@ const CAT_USES   = { essen: 1, kleidung: 10 };
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 const fmt  = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
 const fmtN = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const now  = () => Date.now();
 
 function showNotif(msg) {
   const b = document.getElementById('notification-bar');
@@ -736,6 +714,17 @@ function setBtnLoading(id, loading, label) {
   if (!btn) return;
   btn.disabled = loading;
   btn.textContent = loading ? '...' : label;
+}
+
+// ─── BALANCE BUMP ANIMATION ───────────────────────────────────────────────────
+function updateBalanceDisplay(newBalance, animate=true) {
+  const el = document.getElementById('dash-balance');
+  if (!el) return;
+  el.textContent = fmt(newBalance);
+  if (animate) {
+    el.classList.remove('bump');
+    requestAnimationFrame(() => { el.classList.add('bump'); setTimeout(() => el.classList.remove('bump'), 200); });
+  }
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
@@ -781,6 +770,8 @@ async function loginAccount() {
 function logout() {
   realtimeSubs.forEach(s => db.removeChannel(s));
   realtimeSubs = []; currentUser = null;
+  // clear caches
+  cache.tx = null; cache.inv = null; cache.myProds = null; cache.marketProds = {};
   document.getElementById('screen-dashboard').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
   showTab('verbinden');
@@ -808,22 +799,31 @@ function renderDashboard() {
 function startRealtimeSubscriptions() {
   realtimeSubs.forEach(s => db.removeChannel(s));
   realtimeSubs = [];
+
+  // Account balance changes
   const accSub = db.channel('account-' + currentUser.id)
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'accounts', filter: `id=eq.${currentUser.id}` }, payload => {
       currentUser = { ...currentUser, ...payload.new };
-      renderDashboard();
+      updateBalanceDisplay(currentUser.balance);
+      document.getElementById('device-badge').textContent = currentUser.name.substring(0,10).toUpperCase();
     }).subscribe();
   realtimeSubs.push(accSub);
+
+  // Incoming payment requests
   const reqSub = db.channel('payment-req-' + currentUser.name)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payment_requests', filter: `to_user=eq.${currentUser.name}` }, payload => {
       if (payload.new.status === 'pending') showPaymentModal(payload.new);
     }).subscribe();
   realtimeSubs.push(reqSub);
+
+  // Transactions — invalidate cache, refresh if tab is visible
   const txSub = db.channel('tx-' + currentUser.name)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, payload => {
       const t = payload.new;
       if (t.from_user === currentUser.name || t.to_user === currentUser.name) {
-        refreshBalance(); renderTxList();
+        cache.tx = null; // invalidate
+        const verlaufVisible = document.getElementById('tab-verlauf').style.display !== 'none';
+        if (verlaufVisible) renderTxList();
       }
     }).subscribe();
   realtimeSubs.push(txSub);
@@ -831,7 +831,13 @@ function startRealtimeSubscriptions() {
 
 async function refreshBalance() {
   const { data } = await db.from('accounts').select('balance,connections').eq('id', currentUser.id).single();
-  if (data) { currentUser.balance = data.balance; currentUser.connections = data.connections; renderDashboard(); }
+  if (data) {
+    currentUser.balance = data.balance;
+    currentUser.connections = data.connections;
+    updateBalanceDisplay(data.balance);
+    renderTransferSelects();
+    renderMarketSellerList();
+  }
 }
 
 // ─── CONNECT ──────────────────────────────────────────────────────────────────
@@ -839,18 +845,27 @@ async function connectToAccount() {
   const pass = document.getElementById('connect-pass').value.trim();
   if (!pass) return showStatus('connect-status','Passwort eingeben!', false);
   if (pass === currentUser.password) return showStatus('connect-status','Das ist dein eigenes Passwort!', false);
+
   const { data: other, error } = await db.from('accounts').select('*').eq('password', pass).single();
   if (error || !other) return showStatus('connect-status','❌ Kein Konto gefunden!', false);
   if ((currentUser.connections||[]).includes(other.name)) return showStatus('connect-status','Bereits verbunden mit ' + other.name + '!', false);
+
   const myConns = [...(currentUser.connections||[]), other.name];
-  await db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id);
   const otherConns = [...(other.connections||[])];
   if (!otherConns.includes(currentUser.name)) otherConns.push(currentUser.name);
-  await db.from('accounts').update({ connections: otherConns }).eq('id', other.id);
+
+  // Parallel update
+  await Promise.all([
+    db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id),
+    db.from('accounts').update({ connections: otherConns }).eq('id', other.id)
+  ]);
+
   currentUser.connections = myConns;
   showStatus('connect-status','✅ Verbunden mit ' + other.name + '!', true);
   document.getElementById('connect-pass').value = '';
-  renderDashboard();
+  renderConnectedList();
+  renderTransferSelects();
+  renderMarketSellerList();
 }
 
 document.getElementById('my-password-display').addEventListener('click', function() {
@@ -873,14 +888,19 @@ function renderConnectedList() {
 
 async function disconnectFrom(name) {
   const myConns = (currentUser.connections||[]).filter(n => n !== name);
-  await db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id);
-  const { data: other } = await db.from('accounts').select('*').eq('name', name).single();
-  if (other) {
-    const otherConns = (other.connections||[]).filter(n => n !== currentUser.name);
-    await db.from('accounts').update({ connections: otherConns }).eq('id', other.id);
+  // Parallel: update self + fetch & update other
+  const [, otherRes] = await Promise.all([
+    db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id),
+    db.from('accounts').select('*').eq('name', name).single()
+  ]);
+  if (otherRes.data) {
+    const otherConns = (otherRes.data.connections||[]).filter(n => n !== currentUser.name);
+    await db.from('accounts').update({ connections: otherConns }).eq('id', otherRes.data.id);
   }
   currentUser.connections = myConns;
-  renderDashboard();
+  renderConnectedList();
+  renderTransferSelects();
+  renderMarketSellerList();
 }
 
 function renderTransferSelects() {
@@ -892,7 +912,7 @@ function renderTransferSelects() {
   document.getElementById('payment-req-to').innerHTML = opts;
 }
 
-// ─── TRANSFER ─────────────────────────────────────────────────────────────────
+// ─── TRANSFER (OPTIMISTIC) ────────────────────────────────────────────────────
 async function sendMoney() {
   const toName = document.getElementById('transfer-to').value;
   const amount = parseFloat(document.getElementById('transfer-amount').value);
@@ -901,43 +921,85 @@ async function sendMoney() {
   if (!amount || amount <= 0) return showStatus('transfer-status','Betrag eingeben!', false);
   if (amount > currentUser.balance) return showStatus('transfer-status','Nicht genug Guthaben!', false);
 
-  const { data: freshSelf } = await db.from('accounts').select('balance').eq('id', currentUser.id).single();
-  if (!freshSelf) return showStatus('transfer-status','Fehler beim Laden des Kontos!', false);
-  if (amount > freshSelf.balance) return showStatus('transfer-status','Nicht genug Guthaben!', false);
+  // Optimistic update
+  const prevBalance = currentUser.balance;
+  currentUser.balance = Math.round((currentUser.balance - amount) * 100) / 100;
+  updateBalanceDisplay(currentUser.balance);
+  setBtnLoading('send-money-btn', true, '💸 Jetzt senden');
 
-  const { data: toAcc } = await db.from('accounts').select('*').eq('name', toName).single();
-  if (!toAcc) return showStatus('transfer-status','Empfänger nicht gefunden!', false);
+  try {
+    // Parallel: fresh balance + receiver account
+    const [selfRes, toRes] = await Promise.all([
+      db.from('accounts').select('balance').eq('id', currentUser.id).single(),
+      db.from('accounts').select('*').eq('name', toName).single()
+    ]);
 
-  const { error: e1 } = await db.from('accounts').update({ balance: freshSelf.balance - amount }).eq('id', currentUser.id);
-  if (e1) return showStatus('transfer-status','Fehler: ' + e1.message, false);
-  await db.from('accounts').update({ balance: toAcc.balance + amount }).eq('id', toAcc.id);
-  await db.from('transactions').insert({ from_user: currentUser.name, to_user: toName, amount, note });
+    if (!selfRes.data) throw new Error('Fehler beim Laden des Kontos!');
+    if (amount > selfRes.data.balance) throw new Error('Nicht genug Guthaben!');
+    if (!toRes.data) throw new Error('Empfänger nicht gefunden!');
 
-  currentUser.balance = freshSelf.balance - amount;
-  renderDashboard();
-  showStatus('transfer-status', `✅ ${fmt(amount)} an ${toName} gesendet!`, true);
-  showNotif(`💸 ${fmt(amount)} an ${toName} gesendet`);
-  document.getElementById('transfer-amount').value = '';
-  document.getElementById('transfer-note').value   = '';
-  renderTxList();
+    // Parallel: deduct + credit + log
+    const [e1] = await Promise.all([
+      db.from('accounts').update({ balance: selfRes.data.balance - amount }).eq('id', currentUser.id),
+      db.from('accounts').update({ balance: toRes.data.balance + amount }).eq('id', toRes.data.id),
+      db.from('transactions').insert({ from_user: currentUser.name, to_user: toName, amount, note })
+    ]);
+    if (e1.error) throw new Error(e1.error.message);
+
+    // Confirm real balance
+    currentUser.balance = selfRes.data.balance - amount;
+    updateBalanceDisplay(currentUser.balance, false);
+
+    cache.tx = null; // invalidate tx cache
+    showStatus('transfer-status', `✅ ${fmt(amount)} an ${toName} gesendet!`, true);
+    showNotif(`💸 ${fmt(amount)} an ${toName} gesendet`);
+    document.getElementById('transfer-amount').value = '';
+    document.getElementById('transfer-note').value   = '';
+    // Refresh tx list if visible
+    if (document.getElementById('tab-verlauf').style.display !== 'none') renderTxList();
+
+  } catch (err) {
+    // Rollback optimistic
+    currentUser.balance = prevBalance;
+    updateBalanceDisplay(prevBalance, false);
+    showStatus('transfer-status','❌ ' + err.message, false);
+  } finally {
+    setBtnLoading('send-money-btn', false, '💸 Jetzt senden');
+  }
 }
 
-// ─── TRANSACTIONS ─────────────────────────────────────────────────────────────
+// ─── TRANSACTIONS (CACHED) ────────────────────────────────────────────────────
 async function renderTxList() {
+  const list = document.getElementById('tx-list');
+
+  // Show cached immediately, then refresh if stale
+  if (cache.tx && (now() - cache.txTs < cache.TTL_FAST)) {
+    list.innerHTML = cache.tx;
+    return;
+  }
+
+  // Show skeleton while loading
+  if (!cache.tx) list.innerHTML = '<div class="skeleton" style="height:40px;margin-bottom:6px;"></div>'.repeat(5);
+
   const { data: txs } = await db.from('transactions')
     .select('*').or(`from_user.eq.${currentUser.name},to_user.eq.${currentUser.name}`)
     .order('created_at', { ascending: false }).limit(40);
-  const list = document.getElementById('tx-list');
-  if (!txs || !txs.length) { list.innerHTML = '<p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p>'; return; }
-  list.innerHTML = txs.map(t => {
-    const out = t.from_user === currentUser.name;
-    const cls = out ? 'tx-minus' : 'tx-plus';
-    const who = out ? `→ ${t.to_user}` : `← ${t.from_user}`;
-    const ts  = new Date(t.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-    return `<div class="tx-item"><span>${who}${t.note?' · '+t.note:''}</span>
-      <span><span class="${cls}">${out?'-':'+'}${fmt(t.amount)}</span>
-      <span class="tx-time" style="margin-left:6px;">${ts}</span></span></div>`;
-  }).join('');
+
+  if (!txs || !txs.length) {
+    cache.tx = '<p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p>';
+  } else {
+    cache.tx = txs.map(t => {
+      const out = t.from_user === currentUser.name;
+      const cls = out ? 'tx-minus' : 'tx-plus';
+      const who = out ? `→ ${t.to_user}` : `← ${t.from_user}`;
+      const ts  = new Date(t.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return `<div class="tx-item"><span>${who}${t.note?' · '+t.note:''}</span>
+        <span><span class="${cls}">${out?'-':'+'}${fmt(t.amount)}</span>
+        <span class="tx-time" style="margin-left:6px;">${ts}</span></span></div>`;
+    }).join('');
+  }
+  cache.txTs = now();
+  list.innerHTML = cache.tx;
 }
 
 // ─── MARKTPLATZ ───────────────────────────────────────────────────────────────
@@ -967,13 +1029,28 @@ function closeMarketSeller() {
   document.getElementById('seller-list-market').style.display = 'block';
 }
 
-async function loadMarketProducts(sellerName) {
-  const { data: products } = await db.from('products')
-    .select('*').eq('seller', sellerName).eq('active', true).order('created_at', { ascending: false });
+async function loadMarketProducts(sellerName, forceRefresh=false) {
+  const cached = cache.marketProds[sellerName];
+  const fresh = !forceRefresh && cached && (now() - cached.ts < cache.TTL_FAST);
+
+  let products;
+  if (fresh) {
+    products = cached.items;
+  } else {
+    // Show skeleton
+    document.getElementById('market-product-grid').innerHTML =
+      '<div class="skeleton" style="height:200px;border-radius:10px;"></div>'.repeat(4);
+
+    const { data } = await db.from('products')
+      .select('*').eq('seller', sellerName).eq('active', true).order('created_at', { ascending: false });
+    products = data || [];
+    cache.marketProds[sellerName] = { items: products, ts: now() };
+  }
+
   marketProductsCache = {};
-  (products || []).forEach(p => { marketProductsCache[p.id] = p; });
-  renderMarketCatFilter(products || []);
-  renderMarketGrid(products || []);
+  products.forEach(p => { marketProductsCache[p.id] = p; });
+  renderMarketCatFilter(products);
+  renderMarketGrid(products);
 }
 
 function renderMarketCatFilter(products) {
@@ -987,13 +1064,14 @@ function setMarketFilter(cat, el) {
   marketFilter = cat;
   document.querySelectorAll('#market-cat-filter .cat-chip').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
-  if (marketSeller) loadMarketProducts(marketSeller);
+  // Filter client-side — no new DB call
+  const products = marketSeller && cache.marketProds[marketSeller] ? cache.marketProds[marketSeller].items : [];
+  renderMarketGrid(products);
 }
 
 function renderMarketGrid(products) {
   const grid = document.getElementById('market-product-grid');
-  let filtered = products;
-  if (marketFilter !== 'alle') filtered = products.filter(p => p.category === marketFilter);
+  let filtered = marketFilter === 'alle' ? products : products.filter(p => p.category === marketFilter);
   if (!filtered.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🛒</div>Keine Produkte in dieser Kategorie.</div>'; return; }
   grid.innerHTML = filtered.map(p => {
     const imgHtml = p.image_data
@@ -1054,9 +1132,7 @@ async function confirmBuy() {
   if (buyInProgress) return;
   const p = currentBuyProduct;
   if (!p) return;
-
   const total = p.price * buyQty;
-
   if (total > currentUser.balance) return showStatus('buy-modal-status','Nicht genug Guthaben!', false);
   if (buyQty > p.stock) return showStatus('buy-modal-status','Nicht genug Lager!', false);
   if (p.seller === currentUser.name) return showStatus('buy-modal-status','Du kannst nicht dein eigenes Produkt kaufen!', false);
@@ -1065,91 +1141,69 @@ async function confirmBuy() {
   setBtnLoading('confirm-buy-btn', true, '🛒 Kaufen');
 
   try {
-    // ── Frisches Guthaben & Lager holen ──
-    const { data: freshSelf, error: selfErr } = await db.from('accounts').select('balance').eq('id', currentUser.id).single();
-    if (selfErr || !freshSelf) throw new Error('Konto laden fehlgeschlagen');
-    if (total > freshSelf.balance) throw new Error('Nicht genug Guthaben!');
+    // Parallel: fresh self balance + fresh product info
+    const [selfRes, prodRes] = await Promise.all([
+      db.from('accounts').select('balance').eq('id', currentUser.id).single(),
+      db.from('products').select('stock,active,seller').eq('id', p.id).single()
+    ]);
 
-    const { data: freshProd, error: prodErr } = await db.from('products').select('stock,active').eq('id', p.id).single();
-    if (prodErr || !freshProd) throw new Error('Produkt nicht gefunden');
-    if (!freshProd.active) throw new Error('Produkt nicht mehr verfügbar');
-    if (buyQty > freshProd.stock) throw new Error('Nicht genug Lager!');
+    if (!selfRes.data) throw new Error('Konto laden fehlgeschlagen');
+    if (total > selfRes.data.balance) throw new Error('Nicht genug Guthaben!');
+    if (!prodRes.data) throw new Error('Produkt nicht gefunden');
+    if (!prodRes.data.active) throw new Error('Produkt nicht mehr verfügbar');
+    if (buyQty > prodRes.data.stock) throw new Error('Nicht genug Lager!');
 
-    // ── Lager verringern ──
-    const { error: stockErr } = await db.from('products').update({ stock: freshProd.stock - buyQty }).eq('id', p.id);
+    // Stock update
+    const { error: stockErr } = await db.from('products').update({ stock: prodRes.data.stock - buyQty }).eq('id', p.id);
     if (stockErr) throw new Error('Lager-Fehler: ' + stockErr.message);
 
-    // ── Käufer-Guthaben abziehen ──
-    const { error: buyerErr } = await db.from('accounts').update({ balance: freshSelf.balance - total }).eq('id', currentUser.id);
-    if (buyerErr) {
-      await db.from('products').update({ stock: freshProd.stock }).eq('id', p.id);
-      throw new Error('Zahlung fehlgeschlagen: ' + buyerErr.message);
+    // Parallel: deduct buyer + fetch seller balance
+    const [buyerRes, sellerRes] = await Promise.all([
+      db.from('accounts').update({ balance: selfRes.data.balance - total }).eq('id', currentUser.id),
+      db.from('accounts').select('balance,id').eq('name', p.seller).single()
+    ]);
+    if (buyerRes.error) {
+      await db.from('products').update({ stock: prodRes.data.stock }).eq('id', p.id); // rollback
+      throw new Error('Zahlung fehlgeschlagen: ' + buyerRes.error.message);
     }
 
-    // ── Verkäufer-Guthaben gutschreiben ──
-    const { data: seller } = await db.from('accounts').select('balance').eq('name', p.seller).single();
-    if (seller) {
-      await db.from('accounts').update({ balance: seller.balance + total }).eq('name', p.seller);
-    }
-
-    // ── Transaktion speichern ──
-    await db.from('transactions').insert({
-      from_user: currentUser.name,
-      to_user: p.seller,
-      amount: total,
-      note: `Kauf: ${p.name} x${buyQty}`
+    // Parallel: credit seller + log tx + build inventory items
+    const maxUses = CAT_USES[p.category] || null;
+    const allInvItems = Array.from({length: buyQty}, () => {
+      const item = { owner: currentUser.name, name: p.name, category: p.category, active: true };
+      if (p.id)         item.product_id = p.id;
+      if (p.price)      item.price_paid = p.price;
+      if (p.image_data) item.image_data = p.image_data;
+      if (maxUses !== null) { item.uses_left = maxUses; item.max_uses = maxUses; }
+      return item;
     });
 
-    // ── INVENTAR HINZUFÜGEN (Fix: direkter Insert ohne Test-Insert) ──
-    const maxUses = CAT_USES[p.category] || null;
-
-    const allInvItems = [];
-    for (let i = 0; i < buyQty; i++) {
-      const invItem = {
-        owner: currentUser.name,
-        name: p.name,
-        category: p.category,
-        active: true,
-      };
-      if (p.id)          invItem.product_id = p.id;
-      if (p.price)       invItem.price_paid = p.price;
-      if (p.image_data)  invItem.image_data = p.image_data;
-      if (maxUses !== null) {
-        invItem.uses_left = maxUses;
-        invItem.max_uses  = maxUses;
-      }
-      allInvItems.push(invItem);
+    const ops = [
+      db.from('transactions').insert({ from_user: currentUser.name, to_user: p.seller, amount: total, note: `Kauf: ${p.name} x${buyQty}` }),
+      db.from('inventory').insert(allInvItems)
+    ];
+    if (sellerRes.data) {
+      ops.push(db.from('accounts').update({ balance: sellerRes.data.balance + total }).eq('id', sellerRes.data.id));
+    }
+    const results = await Promise.all(ops);
+    const invResult = results[1];
+    if (invResult.error) {
+      showStatus('buy-modal-status', `⚠️ Kauf OK, Inventar-Fehler: ${invResult.error.message}`, false);
     }
 
-    debugLog('INV_INSERT_ATTEMPT', { payload: allInvItems[0], qty: buyQty });
+    // Update local state
+    currentUser.balance = selfRes.data.balance - total;
+    updateBalanceDisplay(currentUser.balance);
 
-    const { data: invData, error: invErr } = await db
-      .from('inventory')
-      .insert(allInvItems)
-      .select('id');
+    // Invalidate caches
+    cache.tx = null;
+    cache.inv = null;
+    if (cache.marketProds[p.seller]) cache.marketProds[p.seller].ts = 0;
 
-    debugLog('INV_INSERT_RESULT', { error: invErr, data: invData });
-
-    if (invErr) {
-      // Kauf war erfolgreich, aber Inventar-Insert fehlgeschlagen → Nutzer informieren
-      showStatus('buy-modal-status',
-        `⚠️ Kauf OK, aber Inventar-Fehler: ${invErr.message} (Code: ${invErr.code}) — Bitte Debug-Log prüfen!`, false);
-      currentUser.balance = freshSelf.balance - total;
-      renderDashboard();
-      buyInProgress = false;
-      setBtnLoading('confirm-buy-btn', false, '🛒 Kaufen');
-      if (marketSeller) loadMarketProducts(marketSeller);
-      renderTxList();
-      return;
-    }
-
-    // ── Alles erfolgreich ──
-    currentUser.balance = freshSelf.balance - total;
-    renderDashboard();
     closeBuyModal();
     showNotif(`🛒 ${p.name} x${buyQty} gekauft für ${fmt(total)}!`);
-    if (marketSeller) loadMarketProducts(marketSeller);
-    renderTxList();
+    if (marketSeller) loadMarketProducts(marketSeller, true);
+    if (document.getElementById('tab-verlauf').style.display !== 'none') renderTxList();
 
   } catch (err) {
     showStatus('buy-modal-status', '❌ ' + err.message, false);
@@ -1168,8 +1222,23 @@ function switchShopTab(t) {
   if (t==='resell') loadResellInventory();
 }
 
-async function loadMyProducts() {
+async function loadMyProducts(forceRefresh=false) {
+  const div = document.getElementById('my-products-list');
+  const stale = !cache.myProds || forceRefresh || (now() - cache.myProdsTs > cache.TTL_SLOW);
+
+  if (!stale && cache.myProds) {
+    renderMyProducts(cache.myProds);
+    return;
+  }
+
+  div.innerHTML = '<div class="skeleton" style="height:64px;border-radius:8px;margin-bottom:8px;"></div>'.repeat(3);
   const { data: prods } = await db.from('products').select('*').eq('seller', currentUser.name).eq('active', true).order('created_at', { ascending: false });
+  cache.myProds = prods || [];
+  cache.myProdsTs = now();
+  renderMyProducts(cache.myProds);
+}
+
+function renderMyProducts(prods) {
   const div = document.getElementById('my-products-list');
   if (!prods || !prods.length) { div.innerHTML = '<div class="empty-state"><div class="icon">📦</div>Noch keine Produkte hochgeladen.</div>'; return; }
   div.innerHTML = prods.map(p => {
@@ -1199,6 +1268,8 @@ async function updateProductPrice(id, newPrice) {
   const price = parseFloat(newPrice);
   if (!price || price <= 0) return;
   await db.from('products').update({ price }).eq('id', id);
+  // Update cache
+  if (cache.myProds) cache.myProds = cache.myProds.map(p => p.id === id ? {...p, price} : p);
   showNotif('✅ Preis aktualisiert!');
 }
 
@@ -1206,22 +1277,26 @@ async function addStock(id, current) {
   const add = parseInt(prompt('Wie viele Stück hinzufügen?', '1'));
   if (!add || add <= 0) return;
   await db.from('products').update({ stock: current + add }).eq('id', id);
-  loadMyProducts();
+  cache.myProds = null; // invalidate
+  loadMyProducts(true);
 }
 
 async function deleteProduct(id) {
   const row = document.getElementById('prodrow-' + id);
   if (row) row.style.opacity = '0.3';
+  // Optimistic: remove from cache
+  if (cache.myProds) cache.myProds = cache.myProds.filter(p => p.id !== id);
+
   const { error } = await db.from('products').delete().eq('id', id).eq('seller', currentUser.name);
   if (error) {
     const { error: e2 } = await db.from('products').update({ active: false }).eq('id', id);
-    if (e2) { showNotif('❌ Löschen fehlgeschlagen: ' + e2.message); if(row) row.style.opacity='1'; return; }
+    if (e2) { showNotif('❌ Löschen fehlgeschlagen: ' + e2.message); cache.myProds = null; loadMyProducts(true); return; }
   }
   showNotif('🗑️ Produkt gelöscht!');
-  loadMyProducts();
+  renderMyProducts(cache.myProds || []);
 }
 
-// ─── IMAGE UPLOAD ────────────────────────────────────────────────────────────
+// ─── IMAGE UPLOAD ─────────────────────────────────────────────────────────────
 function compressImage(file, maxWidth, quality) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(file);
@@ -1236,11 +1311,8 @@ function compressImage(file, maxWidth, quality) {
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      try {
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      } catch(e) {
-        resolve(null);
-      }
+      try { resolve(canvas.toDataURL('image/jpeg', quality)); }
+      catch(e) { resolve(null); }
     };
     img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
     img.src = url;
@@ -1250,40 +1322,27 @@ function compressImage(file, maxWidth, quality) {
 async function handleImgUpload(e) {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
-
   const area = document.getElementById('upload-img-area');
   area.innerHTML = '<span style="font-size:1.2rem;">⏳</span><span>Bild wird verarbeitet...</span>';
   area.classList.remove('has-img');
-
   if (!file.type.startsWith('image/')) {
     area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Nur Bilder erlaubt!</span>';
     return;
   }
-
-  const data = await compressImage(file, 600, 0.72);
-
+  let data = await compressImage(file, 600, 0.72);
   if (!data) {
-    area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Fehler beim Laden. Anderes Bild versuchen.</span>';
+    area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Fehler. Anderes Bild versuchen.</span>';
     e.target.value = '';
     return;
   }
-
   const kb = Math.round(data.length * 0.75 / 1024);
   if (kb > 700) {
-    const data2 = await compressImage(file, 400, 0.5);
-    if (data2) {
-      document.getElementById('upload-img-data').value = data2;
-      const kb2 = Math.round(data2.length * 0.75 / 1024);
-      area.innerHTML = `<img src="${data2}" /><div style="font-size:0.65rem;color:rgba(245,230,200,0.4);margin-top:4px;">${kb2} KB (komprimiert)</div>`;
-    } else {
-      area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Bild zu groß! Bitte kleineres Bild wählen.</span>';
-    }
-    area.classList.add('has-img');
-    return;
+    data = await compressImage(file, 400, 0.5);
+    if (!data) { area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Bild zu groß!</span>'; return; }
   }
-
+  const kb2 = Math.round(data.length * 0.75 / 1024);
   document.getElementById('upload-img-data').value = data;
-  area.innerHTML = `<img src="${data}" /><div style="font-size:0.65rem;color:rgba(245,230,200,0.4);margin-top:4px;">${kb} KB</div>`;
+  area.innerHTML = `<img src="${data}" /><div style="font-size:0.65rem;color:rgba(245,230,200,0.4);margin-top:4px;">${kb2} KB</div>`;
   area.classList.add('has-img');
 }
 
@@ -1294,50 +1353,48 @@ async function uploadProduct() {
   const stock    = parseInt(document.getElementById('upload-stock').value) || 1;
   const desc     = document.getElementById('upload-desc').value.trim();
   const imgData  = document.getElementById('upload-img-data').value;
-
   if (!name)     return showStatus('upload-status','Name eingeben!', false);
   if (!category) return showStatus('upload-status','Kategorie wählen!', false);
   if (!price || price <= 0) return showStatus('upload-status','Preis eingeben!', false);
-  if (imgData && imgData.length > 700000) return showStatus('upload-status','❌ Bild zu groß! Bitte kleineres Bild wählen.', false);
+  if (imgData && imgData.length > 700000) return showStatus('upload-status','❌ Bild zu groß!', false);
 
   setBtnLoading('upload-btn', true, '📤 Produkt hochladen');
   showStatus('upload-status','⏳ Wird hochgeladen...', true);
 
   const { error } = await db.from('products').insert({
-    seller: currentUser.name,
-    name, category, price, stock,
-    description: desc,
-    image_data: imgData || null,
-    active: true
+    seller: currentUser.name, name, category, price, stock,
+    description: desc, image_data: imgData || null, active: true
   });
-
   setBtnLoading('upload-btn', false, '📤 Produkt hochladen');
-
   if (error) return showStatus('upload-status','❌ Fehler: ' + error.message, false);
 
   showStatus('upload-status','✅ Produkt hochgeladen!', true);
   showNotif('📤 ' + name + ' in deinen Shop eingestellt!');
 
-  document.getElementById('upload-name').value     = '';
-  document.getElementById('upload-category').value = '';
-  document.getElementById('upload-price').value    = '';
-  document.getElementById('upload-stock').value    = '1';
-  document.getElementById('upload-desc').value     = '';
-  document.getElementById('upload-img-data').value = '';
-  document.getElementById('upload-img-input').value = '';
+  // Reset form
+  ['upload-name','upload-category','upload-price','upload-desc','upload-img-data','upload-img-input'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('upload-stock').value = '1';
   const area = document.getElementById('upload-img-area');
   area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span>Bild auswählen oder hier tippen</span>';
   area.classList.remove('has-img');
 
+  cache.myProds = null; // invalidate
   setTimeout(() => switchShopTab('produkte'), 1200);
 }
 
 // ─── RESELL ───────────────────────────────────────────────────────────────────
 async function loadResellInventory() {
-  const { data: items } = await db.from('inventory')
-    .select('*').eq('owner', currentUser.name).eq('active', true).order('created_at', { ascending: false });
   const div = document.getElementById('resell-inv-list');
-  if (!items || !items.length) { div.innerHTML = '<div class="empty-state"><div class="icon">🎒</div>Kein Inventar zum Weiterverkaufen.</div>'; return; }
+  let items = cache.inv;
+  if (!items || now() - cache.invTs > cache.TTL_SLOW) {
+    div.innerHTML = '<div class="skeleton" style="height:64px;border-radius:8px;margin-bottom:8px;"></div>'.repeat(3);
+    const { data } = await db.from('inventory').select('*').eq('owner', currentUser.name).eq('active', true).order('created_at', { ascending: false });
+    items = data || [];
+    cache.inv = items; cache.invTs = now();
+  }
+  if (!items.length) { div.innerHTML = '<div class="empty-state"><div class="icon">🎒</div>Kein Inventar zum Weiterverkaufen.</div>'; return; }
   div.innerHTML = items.map(item => {
     const imgHtml = item.image_data
       ? `<div class="my-product-thumb"><img src="${item.image_data}" /></div>`
@@ -1359,14 +1416,13 @@ async function resellItem(invId) {
   const priceInput = document.getElementById('resell-price-' + invId);
   const newPrice = parseFloat(priceInput ? priceInput.value : 0);
   if (!newPrice || newPrice <= 0) return showNotif('❌ Preis eingeben!');
-  const { data: item } = await db.from('inventory').select('*').eq('id', invId).single();
+  const item = (cache.inv || []).find(i => i.id === invId) || (await db.from('inventory').select('*').eq('id', invId).single()).data;
   if (!item) return;
-  await db.from('products').insert({
-    seller: currentUser.name, name: item.name, category: item.category,
-    price: newPrice, stock: 1, image_data: item.image_data || null, active: true,
-    description: 'Weiterverkauf (gebraucht)'
-  });
-  await db.from('inventory').update({ active: false }).eq('id', invId);
+  await Promise.all([
+    db.from('products').insert({ seller: currentUser.name, name: item.name, category: item.category, price: newPrice, stock: 1, image_data: item.image_data || null, active: true, description: 'Weiterverkauf (gebraucht)' }),
+    db.from('inventory').update({ active: false }).eq('id', invId)
+  ]);
+  cache.inv = null; cache.myProds = null; // invalidate both
   showNotif('✅ ' + item.name + ' für ' + fmt(newPrice) + ' in Shop eingestellt!');
   loadResellInventory();
 }
@@ -1378,13 +1434,28 @@ async function resellFromModal() {
   showTab('meinshop');
 }
 
-// ─── INVENTAR ─────────────────────────────────────────────────────────────────
-async function renderInventar() {
+// ─── INVENTAR (CACHED) ────────────────────────────────────────────────────────
+async function renderInventar(forceRefresh=false) {
+  const grid = document.getElementById('inv-grid');
+  const stale = !cache.inv || forceRefresh || (now() - cache.invTs > cache.TTL_SLOW);
+
+  // Show cached immediately
+  if (!stale && cache.inv) {
+    renderInvGrid(cache.inv);
+    return;
+  }
+
+  grid.innerHTML = '<div class="skeleton" style="height:180px;border-radius:8px;"></div>'.repeat(4);
   const { data: items } = await db.from('inventory')
     .select('*').eq('owner', currentUser.name).eq('active', true).order('created_at', { ascending: false });
+  cache.inv = items || [];
+  cache.invTs = now();
+  renderInvGrid(cache.inv);
+}
+
+function renderInvGrid(allItems) {
   const grid = document.getElementById('inv-grid');
-  let filtered = items || [];
-  if (invFilter !== 'alle') filtered = filtered.filter(i => i.category === invFilter);
+  const filtered = invFilter === 'alle' ? allItems : allItems.filter(i => i.category === invFilter);
 
   document.querySelectorAll('#inv-cat-filter .cat-chip').forEach(b => {
     const fn = b.getAttribute('onclick') || '';
@@ -1399,8 +1470,7 @@ async function renderInventar() {
     const imgHtml = item.image_data
       ? `<div class="inv-img"><img src="${item.image_data}" /></div>`
       : `<div class="inv-img">${CAT_EMOJI[item.category]||'📦'}</div>`;
-    let actionBtn = '';
-    let usesInfo = '';
+    let actionBtn = '', usesInfo = '';
     if (item.category === 'essen') {
       actionBtn = `<button class="inv-action" style="background:linear-gradient(135deg,#0d5c34,#1a9c58);color:white;" onclick="openUseModal('${item.id}')">🍽️ Essen</button>`;
       usesInfo = `<div style="font-size:0.65rem;color:rgba(245,230,200,0.4);">1× verwendbar</div>`;
@@ -1412,26 +1482,29 @@ async function renderInventar() {
     } else {
       actionBtn = `<button class="inv-action" style="background:rgba(201,168,76,0.15);color:var(--gold);border:1px solid var(--gold-dark);" onclick="openUseModal('${item.id}')">👁️ Ansehen</button>`;
     }
-    return `<div class="inv-card">
-      ${imgHtml}
-      <div class="inv-info">
-        <div class="inv-name">${item.name}</div>
-        <div class="inv-meta">${CAT_LABELS[item.category]||''}</div>
-        ${usesInfo}
-        ${actionBtn}
-      </div>
-    </div>`;
+    return `<div class="inv-card">${imgHtml}<div class="inv-info">
+      <div class="inv-name">${item.name}</div>
+      <div class="inv-meta">${CAT_LABELS[item.category]||''}</div>
+      ${usesInfo}${actionBtn}
+    </div></div>`;
   }).join('');
 }
 
 function filterInv(cat) {
   invFilter = cat;
-  renderInventar();
+  // Client-side filter — no DB call needed
+  if (cache.inv) { renderInvGrid(cache.inv); }
+  else renderInventar();
 }
 
 // ─── USE ITEM MODAL ───────────────────────────────────────────────────────────
 async function openUseModal(invId) {
-  const { data: item } = await db.from('inventory').select('*').eq('id', invId).single();
+  // Try cache first
+  let item = (cache.inv || []).find(i => i.id === invId);
+  if (!item) {
+    const { data } = await db.from('inventory').select('*').eq('id', invId).single();
+    item = data;
+  }
   if (!item) return;
   currentUseItem = item;
   const imgDiv = document.getElementById('use-modal-img');
@@ -1439,20 +1512,16 @@ async function openUseModal(invId) {
   document.getElementById('use-modal-name').textContent = item.name;
   const usesLeft = item.uses_left !== null ? ` · ${item.uses_left} Nutzungen übrig` : '';
   document.getElementById('use-modal-meta').textContent = (CAT_LABELS[item.category]||'') + usesLeft;
-
   const usesBar = document.getElementById('use-modal-uses');
   if (item.category === 'kleidung' && item.max_uses) {
     const uses = item.uses_left || 0;
     usesBar.innerHTML = Array(item.max_uses||10).fill(0).map((_,i) => `<span class="use-dot ${i >= uses ? 'used' : ''}"></span>`).join('');
     usesBar.style.display = 'flex';
   } else { usesBar.style.display = 'none'; }
-
   const btn = document.getElementById('use-modal-btn');
   if (item.category === 'essen') btn.textContent = '🍽️ Essen';
   else if (item.category === 'kleidung') btn.textContent = '👕 Anziehen';
   else btn.textContent = '✅ Benutzen';
-  btn.style.display = 'block';
-
   document.getElementById('use-modal').classList.add('show');
 }
 
@@ -1465,27 +1534,33 @@ async function useItem() {
   if (!currentUseItem) return;
   const item = currentUseItem;
   if (item.category === 'essen') {
-    const { error } = await db.from('inventory').delete().eq('id', item.id).eq('owner', currentUser.name);
-    if (error) await db.from('inventory').update({ active: false }).eq('id', item.id);
+    // Optimistic: remove from cache immediately
+    if (cache.inv) cache.inv = cache.inv.filter(i => i.id !== item.id);
     closeUseModal();
     showNotif(`🍽️ Lecker! ${item.name} gegessen!`);
-    renderInventar();
+    renderInvGrid(cache.inv || []);
+    // DB in background
+    db.from('inventory').delete().eq('id', item.id).eq('owner', currentUser.name)
+      .then(({error}) => { if (error) db.from('inventory').update({ active: false }).eq('id', item.id); });
   } else if (item.category === 'kleidung') {
     const usesLeft = (item.uses_left !== null ? item.uses_left : 10) - 1;
+    // Optimistic cache update
+    if (cache.inv) cache.inv = cache.inv.map(i => i.id === item.id ? {...i, uses_left: usesLeft} : i);
     if (usesLeft <= 0) {
-      const { error } = await db.from('inventory').delete().eq('id', item.id).eq('owner', currentUser.name);
-      if (error) await db.from('inventory').update({ uses_left: 0, active: false }).eq('id', item.id);
+      if (cache.inv) cache.inv = cache.inv.filter(i => i.id !== item.id);
       closeUseModal();
-      showNotif(`👕 ${item.name} ist verschlissen und verschwunden!`);
+      showNotif(`👕 ${item.name} ist verschlissen!`);
+      db.from('inventory').delete().eq('id', item.id).eq('owner', currentUser.name)
+        .then(({error}) => { if (error) db.from('inventory').update({ uses_left: 0, active: false }).eq('id', item.id); });
     } else {
-      await db.from('inventory').update({ uses_left: usesLeft }).eq('id', item.id);
-      currentUseItem.uses_left = usesLeft;
+      currentUseItem = {...item, uses_left: usesLeft};
       const usesBar = document.getElementById('use-modal-uses');
       usesBar.innerHTML = Array(item.max_uses||10).fill(0).map((_,i) => `<span class="use-dot ${i >= usesLeft ? 'used' : ''}"></span>`).join('');
       document.getElementById('use-modal-meta').textContent = (CAT_LABELS[item.category]||'') + ` · ${usesLeft} Nutzungen übrig`;
       showNotif(`👕 ${item.name} angezogen! Noch ${usesLeft}× möglich.`);
+      db.from('inventory').update({ uses_left: usesLeft }).eq('id', item.id);
     }
-    renderInventar();
+    renderInvGrid(cache.inv || []);
   } else {
     showNotif(`✅ ${item.name} benutzt!`);
   }
@@ -1571,25 +1646,35 @@ async function acceptPaymentRequest() {
   if (!pendingReqId) return;
   const { data: req } = await db.from('payment_requests').select('*').eq('id', pendingReqId).single();
   if (!req) return;
-
   const { data: freshSelf } = await db.from('accounts').select('balance').eq('id', currentUser.id).single();
   const balance = freshSelf ? freshSelf.balance : currentUser.balance;
-
   if (balance < req.amount) {
     const st = document.getElementById('modal-status');
     st.textContent = 'Nicht genug Guthaben!'; st.className = 'status-msg show status-err'; return;
   }
-  const { data: fromAcc } = await db.from('accounts').select('*').eq('name', req.from_user).single();
-  await db.from('accounts').update({ balance: balance - req.amount }).eq('id', currentUser.id);
-  if (fromAcc) await db.from('accounts').update({ balance: fromAcc.balance + req.amount }).eq('id', fromAcc.id);
-  await db.from('transactions').insert({
-    from_user: currentUser.name, to_user: req.from_user, amount: req.amount,
-    note: 'Zahlung: ' + (Array.isArray(req.items) ? req.items.map(i=>i.name).join(', ') : '')
-  });
-  await db.from('payment_requests').update({ status: 'accepted' }).eq('id', pendingReqId);
+
+  // Optimistic update
   currentUser.balance = balance - req.amount;
-  renderDashboard(); closePaymentModal();
-  showNotif('✅ ' + fmt(req.amount) + ' bezahlt!'); renderTxList();
+  updateBalanceDisplay(currentUser.balance);
+
+  const [fromRes] = await Promise.all([
+    db.from('accounts').select('*').eq('name', req.from_user).single(),
+    db.from('accounts').update({ balance: balance - req.amount }).eq('id', currentUser.id)
+  ]);
+  if (fromRes.data) {
+    await db.from('accounts').update({ balance: fromRes.data.balance + req.amount }).eq('id', fromRes.data.id);
+  }
+  await Promise.all([
+    db.from('transactions').insert({
+      from_user: currentUser.name, to_user: req.from_user, amount: req.amount,
+      note: 'Zahlung: ' + (Array.isArray(req.items) ? req.items.map(i=>i.name).join(', ') : '')
+    }),
+    db.from('payment_requests').update({ status: 'accepted' }).eq('id', pendingReqId)
+  ]);
+  cache.tx = null;
+  closePaymentModal();
+  showNotif('✅ ' + fmt(req.amount) + ' bezahlt!');
+  if (document.getElementById('tab-verlauf').style.display !== 'none') renderTxList();
 }
 
 async function declinePaymentRequest() {
@@ -1610,6 +1695,7 @@ function showTab(name) {
     const btn = document.getElementById('nav-'+t);
     if (btn) btn.classList.toggle('active', t === name);
   });
+  // Only load when tab becomes visible, use cache when possible
   if (name === 'verlauf')    renderTxList();
   if (name === 'inventar')   renderInventar();
   if (name === 'marktplatz') renderMarketSellerList();
