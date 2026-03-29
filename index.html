@@ -3,1907 +3,1469 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Spielbank & Marktplatz</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<title>CraftMarkt – Minecraft Shopping</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root {
-    --gold: #c9a84c;
-    --gold-light: #f0d080;
-    --gold-dark: #8a6820;
-    --green: #1a3a2a;
-    --green-mid: #204030;
-    --green-dark: #0e2018;
-    --felt: #143222;
-    --cream: #f5e6c8;
-    --red: #c0392b;
-    --shadow: rgba(0,0,0,0.6);
-    --blue: #1a6e9c;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'DM Mono', monospace;
-    background: var(--green-dark);
-    color: var(--cream);
-    min-height: 100vh;
-    background-image:
-      radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.15) 0%, transparent 60%),
-      repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.01) 20px, rgba(255,255,255,0.01) 21px);
-  }
-  header {
-    text-align: center;
-    padding: 24px 20px 16px;
-    border-bottom: 1px solid var(--gold-dark);
-    background: linear-gradient(180deg, #0a1810 0%, transparent 100%);
-    position: relative;
-  }
-  header h1 {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(1.8rem, 5vw, 3rem);
-    font-weight: 900;
-    color: var(--gold);
-    text-shadow: 0 0 30px rgba(201,168,76,0.5), 2px 2px 0 var(--gold-dark);
-    letter-spacing: 4px;
-  }
-  header p { color: rgba(245,230,200,0.5); font-size: 0.7rem; letter-spacing: 3px; margin-top: 4px; }
-  .device-badge {
-    position: absolute; top: 15px; right: 15px;
-    background: rgba(201,168,76,0.15);
-    border: 1px solid var(--gold-dark);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 0.65rem;
-    color: var(--gold);
-    letter-spacing: 1px;
-  }
-  .realtime-dot {
-    display: inline-block; width: 7px; height: 7px;
-    border-radius: 50%; background: #1a9c58;
-    box-shadow: 0 0 6px #1a9c58;
-    animation: pulse 2s infinite;
-    margin-right: 5px;
-    vertical-align: middle;
-  }
-  .container { max-width: 960px; margin: 0 auto; padding: 16px; }
-  .screen { display: none; }
-  .screen.active { display: block; }
-  .card {
-    background: linear-gradient(135deg, var(--green-mid) 0%, var(--felt) 100%);
-    border: 1px solid var(--gold-dark);
-    border-radius: 12px;
-    padding: 22px;
-    margin-bottom: 16px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.2);
-    position: relative;
-    overflow: hidden;
-  }
-  .card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 1px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
-  }
-  .card h2 { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.2rem; margin-bottom: 16px; letter-spacing: 2px; }
-  .card h3 { font-family: 'Playfair Display', serif; color: var(--gold-light); font-size: 0.95rem; margin-bottom: 10px; letter-spacing: 1px; }
-  input, select, textarea {
-    width: 100%;
-    background: rgba(0,0,0,0.4);
-    border: 1px solid var(--gold-dark);
-    border-radius: 6px;
-    color: var(--cream);
-    padding: 10px 12px;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.85rem;
-    margin-bottom: 10px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  input:focus, select:focus, textarea:focus { border-color: var(--gold); }
-  input::placeholder, textarea::placeholder { color: rgba(245,230,200,0.3); }
-  select option { background: #1a3a2a; }
-  .btn {
-    display: inline-block; padding: 10px 20px; border-radius: 6px; border: none;
-    cursor: pointer; font-family: 'DM Mono', monospace; font-size: 0.8rem;
-    font-weight: 500; letter-spacing: 1px; transition: all 0.2s; text-transform: uppercase;
-  }
-  .btn-gold { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--green-dark); font-weight: 700; }
-  .btn-gold:hover { filter: brightness(1.15); transform: translateY(-1px); }
-  .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  .btn-outline { background: transparent; border: 1px solid var(--gold-dark); color: var(--gold); }
-  .btn-outline:hover { border-color: var(--gold); background: rgba(201,168,76,0.1); }
-  .btn-red { background: linear-gradient(135deg, #7a1a14, var(--red)); color: white; }
-  .btn-red:hover { filter: brightness(1.15); }
-  .btn-green { background: linear-gradient(135deg, #0d5c34, #1a9c58); color: white; }
-  .btn-green:hover { filter: brightness(1.15); }
-  .btn-blue { background: linear-gradient(135deg, #0d3a5c, var(--blue)); color: white; }
-  .btn-full { width: 100%; text-align: center; margin-bottom: 8px; }
-  .btn-sm { padding: 6px 12px; font-size: 0.72rem; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  @media(max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
-  .balance-display { text-align: center; padding: 16px; margin-bottom: 16px; }
-  .balance-amount {
-    font-family: 'Playfair Display', serif;
-    font-size: clamp(2.2rem, 7vw, 4rem);
-    font-weight: 900; color: var(--gold);
-    text-shadow: 0 0 20px rgba(201,168,76,0.4); line-height: 1;
-    transition: transform 0.15s ease;
-  }
-  .balance-amount.bump { transform: scale(1.06); }
-  .balance-label { font-size: 0.7rem; letter-spacing: 3px; color: rgba(245,230,200,0.4); margin-top: 4px; }
-  .user-name-display { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--cream); margin-bottom: 4px; }
-  .status-msg { padding: 8px 12px; border-radius: 6px; font-size: 0.78rem; margin-bottom: 10px; display: none; letter-spacing: 0.5px; }
-  .status-msg.show { display: block; }
-  .status-ok { background: rgba(26,156,88,0.2); border: 1px solid #1a9c58; color: #6dffb0; }
-  .status-err { background: rgba(192,57,43,0.2); border: 1px solid var(--red); color: #ff8080; }
-  .tx-list { max-height: 200px; overflow-y: auto; }
-  .tx-list::-webkit-scrollbar { width: 4px; }
-  .tx-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-  .tx-list::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 2px; }
-  .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(201,168,76,0.1); font-size: 0.75rem; }
-  .tx-item:last-child { border-bottom: none; }
-  .tx-plus { color: #6dffb0; }
-  .tx-minus { color: #ff8080; }
-  .tx-time { color: rgba(245,230,200,0.3); font-size: 0.65rem; }
-  .connected-device {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 12px; border: 1px solid rgba(201,168,76,0.15);
-    border-radius: 8px; margin-bottom: 6px; font-size: 0.78rem;
-    background: rgba(255,255,255,0.03);
-  }
-  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
-  .dot-green { background: #1a9c58; box-shadow: 0 0 6px #1a9c58; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
-  .tab-btn {
-    padding: 7px 14px; border: 1px solid var(--gold-dark); border-radius: 20px;
-    background: transparent; color: rgba(245,230,200,0.5); cursor: pointer;
-    font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 1px; transition: all 0.2s;
-  }
-  .tab-btn.active { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--green-dark); font-weight: 700; border-color: var(--gold); }
-  .modal-overlay {
-    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-    z-index: 100; align-items: center; justify-content: center; padding: 16px;
-  }
-  .modal-overlay.show { display: flex; }
-  .modal {
-    background: linear-gradient(135deg, var(--green-mid), var(--felt));
-    border: 2px solid var(--gold); border-radius: 16px; padding: 28px;
-    max-width: 420px; width: 100%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(201,168,76,0.2);
-    position: relative; animation: modalIn 0.3s ease;
-    max-height: 90vh; overflow-y: auto;
-  }
-  @keyframes modalIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .modal h2 { font-family: 'Playfair Display', serif; color: var(--gold); margin-bottom: 14px; }
-  .modal-amount { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); text-align: center; margin: 12px 0; }
-  .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: var(--cream); cursor: pointer; font-size: 1.4rem; }
-  .divider { border: none; border-top: 1px solid rgba(201,168,76,0.15); margin: 16px 0; }
-  .chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-  .chip { padding: 5px 12px; border-radius: 20px; font-size: 0.72rem; border: 1px solid; cursor: pointer; transition: all 0.15s; font-family: 'DM Mono', monospace; }
-  .chip-gold { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.1); }
-  .chip-gold:hover { background: rgba(201,168,76,0.25); transform: translateY(-2px); }
-  .chip-active { background: rgba(201,168,76,0.3) !important; border-color: var(--gold-light) !important; }
-  #notification-bar {
-    position: fixed; top: 0; left: 0; right: 0;
-    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
-    color: var(--green-dark); text-align: center; padding: 12px;
-    font-family: 'DM Mono', monospace; font-weight: 700; font-size: 0.82rem;
-    z-index: 200; transform: translateY(-100%); transition: transform 0.4s ease; letter-spacing: 1px;
-  }
-  #notification-bar.show { transform: translateY(0); }
-  .label { font-size: 0.68rem; letter-spacing: 2px; color: rgba(245,230,200,0.4); text-transform: uppercase; margin-bottom: 5px; }
-  .pass-box {
-    background: rgba(0,0,0,0.5); border: 2px solid var(--gold); border-radius: 8px;
-    padding: 12px; font-family: 'Playfair Display', serif; font-size: 1.4rem;
-    color: var(--gold); text-align: center; letter-spacing: 6px; margin-bottom: 14px;
-    user-select: all; cursor: pointer;
-  }
-  .loading-overlay {
-    position: fixed; inset: 0; background: rgba(14,32,24,0.95);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 300; gap: 16px;
-  }
-  .loading-spinner {
-    width: 48px; height: 48px; border: 3px solid rgba(201,168,76,0.2);
-    border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-  @media(max-width: 480px) { .shop-grid { grid-template-columns: repeat(2, 1fr); } }
-  .product-card {
-    background: rgba(0,0,0,0.35);
-    border: 1px solid rgba(201,168,76,0.2);
-    border-radius: 10px;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-  }
-  .product-card:hover { border-color: var(--gold); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-  .product-img {
-    width: 100%; height: 130px; object-fit: cover;
-    background: rgba(0,0,0,0.4);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 2.5rem;
-    overflow: hidden;
-  }
-  .product-img img { width: 100%; height: 100%; object-fit: cover; }
-  .product-info { padding: 10px; }
-  .product-name { font-family: 'Playfair Display', serif; font-size: 0.88rem; color: var(--cream); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .product-price { color: var(--gold); font-size: 0.82rem; font-weight: 700; }
-  .product-stock { font-size: 0.68rem; color: rgba(245,230,200,0.4); margin-top: 2px; }
-  .product-cat-badge {
-    position: absolute; top: 6px; right: 6px;
-    background: rgba(0,0,0,0.7); border: 1px solid rgba(201,168,76,0.3);
-    border-radius: 10px; padding: 2px 7px; font-size: 0.6rem; color: var(--gold);
-  }
-  .out-of-stock { opacity: 0.5; pointer-events: none; }
-  .out-of-stock::after {
-    content: 'AUSVERKAUFT';
-    position: absolute; inset: 0;
-    background: rgba(0,0,0,0.6);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.7rem; letter-spacing: 2px; color: #ff8080;
-    border-radius: 10px;
-  }
-  .cat-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-  .cat-chip {
-    padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; border: 1px solid rgba(201,168,76,0.3);
-    cursor: pointer; transition: all 0.15s; color: rgba(245,230,200,0.6); background: transparent;
-    font-family: 'DM Mono', monospace;
-  }
-  .cat-chip.active { background: rgba(201,168,76,0.2); border-color: var(--gold); color: var(--gold); }
-  .cat-chip:hover { border-color: var(--gold); color: var(--gold); }
-  .my-product-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px; border: 1px solid rgba(201,168,76,0.12);
-    border-radius: 8px; margin-bottom: 8px; background: rgba(0,0,0,0.2);
-  }
-  .my-product-thumb {
-    width: 48px; height: 48px; border-radius: 6px; object-fit: cover;
-    background: rgba(0,0,0,0.4); flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
-    overflow: hidden;
-  }
-  .my-product-thumb img { width: 100%; height: 100%; object-fit: cover; }
-  .my-product-info { flex: 1; min-width: 0; }
-  .my-product-name { font-size: 0.82rem; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .my-product-meta { font-size: 0.7rem; color: rgba(245,230,200,0.4); }
-  .my-product-actions { display: flex; gap: 6px; flex-shrink: 0; }
-  .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-  .inv-card {
-    background: rgba(0,0,0,0.3); border: 1px solid rgba(201,168,76,0.15);
-    border-radius: 8px; overflow: hidden; transition: border-color 0.2s;
-  }
-  .inv-card:hover { border-color: rgba(201,168,76,0.4); }
-  .inv-img {
-    width: 100%; height: 100px; object-fit: cover;
-    background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 2rem;
-    overflow: hidden;
-  }
-  .inv-img img { width: 100%; height: 100%; object-fit: cover; }
-  .inv-info { padding: 8px; }
-  .inv-name { font-size: 0.8rem; color: var(--cream); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .inv-meta { font-size: 0.67rem; color: rgba(245,230,200,0.4); margin-bottom: 6px; }
-  .inv-action { width: 100%; padding: 6px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-family: 'DM Mono', monospace; font-weight: 700; letter-spacing: 0.5px; }
-  .img-upload-area {
-    border: 2px dashed var(--gold-dark); border-radius: 8px;
-    padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s;
-    margin-bottom: 10px; color: rgba(245,230,200,0.4); font-size: 0.78rem;
-    min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  }
-  .img-upload-area:hover { border-color: var(--gold); color: var(--cream); }
-  .img-upload-area.has-img { padding: 4px; }
-  .img-upload-area img { max-height: 120px; border-radius: 4px; max-width: 100%; }
-  .img-upload-label { display: block; cursor: pointer; width: 100%; }
-  #upload-img-input { display: none; }
-  .price-edit-input {
-    width: 80px; background: rgba(0,0,0,0.5); border: 1px solid var(--gold-dark);
-    border-radius: 4px; color: var(--gold); padding: 4px 8px; font-size: 0.8rem;
-    font-family: 'DM Mono', monospace; text-align: right;
-  }
-  .resell-badge {
-    display: inline-block; padding: 2px 8px; border-radius: 10px;
-    background: rgba(26,110,156,0.3); border: 1px solid rgba(26,110,156,0.5);
-    color: #6dbcff; font-size: 0.65rem; margin-left: 6px;
-  }
-  .uses-bar { display: flex; gap: 2px; margin-top: 4px; }
-  .use-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(201,168,76,0.4); flex-shrink: 0; }
-  .use-dot.used { background: rgba(201,168,76,0.1); }
-  .empty-state { text-align: center; padding: 30px; color: rgba(245,230,200,0.3); font-size: 0.8rem; }
-  .empty-state .icon { font-size: 2rem; margin-bottom: 8px; }
-  .calc-display {
-    background: rgba(0,0,0,0.6); border: 1px solid var(--gold-dark); border-radius: 6px;
-    padding: 10px 14px; font-family: 'Playfair Display', serif; font-size: 1.6rem;
-    color: var(--gold-light); text-align: right; min-height: 54px; margin-bottom: 4px;
-    letter-spacing: 1px; word-break: break-all;
-  }
-  .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-  .calc-btn {
-    padding: 12px 0; border: none; border-radius: 6px; cursor: pointer;
-    font-family: 'DM Mono', monospace; font-size: 0.95rem; font-weight: 500;
-    transition: all 0.15s; background: rgba(255,255,255,0.06); color: var(--cream);
-    border: 1px solid rgba(255,255,255,0.08);
-  }
-  .calc-btn:hover { background: rgba(255,255,255,0.12); }
-  .calc-btn.op { background: rgba(201,168,76,0.15); color: var(--gold); border-color: rgba(201,168,76,0.2); }
-  .calc-btn.eq { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--green-dark); font-weight: 700; }
-  .calc-btn.clear { background: rgba(192,57,43,0.25); color: #ff8080; }
-  .calc-btn.wide { grid-column: span 2; }
-  .item-list { margin-top: 8px; }
-  .item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(201,168,76,0.08); font-size: 0.75rem; }
-  .item-row button { background: none; border: none; color: #ff8080; cursor: pointer; font-size: 0.85rem; padding: 0 4px; }
-  /* Skeleton loader */
-  .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px; }
-  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;font-family:'Courier New',monospace;color:#fff}
+canvas{display:block}
+#gameCanvas{position:fixed;top:0;left:0;width:100%;height:100%}
+
+/* ── CROSSHAIR ── */
+#crosshair{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:10}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(255,255,255,0.85)}
+#crosshair::before{width:2px;height:18px;top:-9px;left:-1px}
+#crosshair::after{width:18px;height:2px;top:-1px;left:-9px}
+
+/* ── HUD ── */
+#hud{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;text-align:center;pointer-events:none}
+#hud-balance{background:rgba(0,0,0,0.7);border:2px solid #c9a84c;border-radius:4px;padding:6px 18px;font-size:1rem;color:#c9a84c;letter-spacing:2px;margin-bottom:6px}
+#hud-hint{background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);border-radius:3px;padding:4px 12px;font-size:0.7rem;color:rgba(255,255,255,0.7);letter-spacing:1px}
+
+/* ── HOTBAR ── */
+#hotbar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:3px;z-index:20;margin-bottom:70px}
+.hotbar-slot{width:44px;height:44px;background:rgba(0,0,0,0.6);border:2px solid rgba(255,255,255,0.3);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:1.3rem}
+.hotbar-slot.active{border-color:#fff}
+
+/* ── MINIMAP ── */
+#minimap{position:fixed;top:16px;right:16px;width:100px;height:100px;border:2px solid #c9a84c;border-radius:4px;overflow:hidden;z-index:20}
+#minimap canvas{width:100%;height:100%}
+
+/* ── INFO TOAST ── */
+#toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);border:2px solid #c9a84c;border-radius:6px;padding:12px 24px;font-size:0.85rem;letter-spacing:1px;color:#fff;z-index:50;display:none;text-align:center;pointer-events:none}
+
+/* ── LOADING ── */
+#loading{position:fixed;inset:0;background:#1a3a2a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;gap:14px}
+#loading h1{font-family:'Courier New',monospace;font-size:2.5rem;color:#c9a84c;letter-spacing:6px;text-shadow:0 0 20px rgba(201,168,76,0.5)}
+#loading p{color:rgba(255,255,255,0.5);font-size:0.8rem;letter-spacing:3px}
+#progress-bar{width:200px;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden}
+#progress-fill{height:100%;background:#c9a84c;width:0%;transition:width 0.3s;border-radius:3px}
+
+/* ── POINTER LOCK SCREEN ── */
+#clickToPlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:150;gap:16px;cursor:pointer}
+#clickToPlay h2{font-size:1.8rem;color:#c9a84c;letter-spacing:4px}
+#clickToPlay p{color:rgba(255,255,255,0.6);font-size:0.8rem;letter-spacing:2px}
+#clickToPlay .key{display:inline-block;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:4px;padding:3px 8px;font-size:0.75rem}
+
+/* ── SHOP UI ── */
+#shopUI{position:fixed;inset:0;background:rgba(0,0,0,0);display:none;z-index:100;align-items:center;justify-content:center}
+#shopUI.open{display:flex;background:rgba(0,0,0,0.5)}
+.shop-container{background:#1a2d1a;border:3px solid #c9a84c;border-radius:8px;width:min(820px,98vw);max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 60px rgba(0,0,0,0.8),inset 0 0 0 1px rgba(201,168,76,0.1)}
+.shop-header{background:linear-gradient(135deg,#0a1810,#1a3a2a);padding:14px 20px;border-bottom:2px solid #c9a84c;display:flex;align-items:center;justify-content:space-between}
+.shop-header h2{font-family:'Courier New',monospace;font-size:1.3rem;color:#c9a84c;letter-spacing:3px}
+.shop-close{background:none;border:1px solid rgba(201,168,76,0.4);color:#c9a84c;width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center}
+.shop-close:hover{background:rgba(201,168,76,0.2)}
+.shop-body{display:flex;flex:1;overflow:hidden}
+.shop-sidebar{width:180px;border-right:2px solid rgba(201,168,76,0.2);padding:12px;display:flex;flex-direction:column;gap:8px;background:rgba(0,0,0,0.2);overflow-y:auto;flex-shrink:0}
+.shop-sidebar h4{font-size:0.65rem;letter-spacing:2px;color:rgba(255,255,255,0.4);margin-bottom:4px}
+.seller-chip{padding:8px 10px;border-radius:5px;border:1px solid rgba(201,168,76,0.25);cursor:pointer;font-size:0.75rem;color:rgba(255,255,255,0.7);transition:all 0.15s;display:flex;align-items:center;gap:8px}
+.seller-chip:hover,.seller-chip.active{background:rgba(201,168,76,0.15);border-color:#c9a84c;color:#fff}
+.seller-dot{width:8px;height:8px;border-radius:50%;background:#1a9c58;box-shadow:0 0 6px #1a9c58;flex-shrink:0}
+.shop-main{flex:1;padding:14px;overflow-y:auto;min-width:0}
+.cat-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.cat-pill{padding:4px 12px;border-radius:20px;font-size:0.68rem;border:1px solid rgba(201,168,76,0.3);cursor:pointer;color:rgba(255,255,255,0.6);background:transparent;font-family:'Courier New',monospace;transition:all 0.15s}
+.cat-pill:hover,.cat-pill.active{background:rgba(201,168,76,0.2);border-color:#c9a84c;color:#c9a84c}
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.prod-card{background:rgba(0,0,0,0.4);border:1px solid rgba(201,168,76,0.2);border-radius:6px;overflow:hidden;cursor:pointer;transition:all 0.15s;position:relative}
+.prod-card:hover{border-color:#c9a84c;transform:translateY(-2px)}
+.prod-img{height:110px;display:flex;align-items:center;justify-content:center;font-size:2.5rem;overflow:hidden;background:rgba(0,0,0,0.3)}
+.prod-img img{width:100%;height:100%;object-fit:cover}
+.prod-info{padding:8px}
+.prod-name{font-size:0.78rem;color:#fff;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prod-price{color:#c9a84c;font-size:0.8rem;font-weight:bold}
+.prod-stock{font-size:0.63rem;color:rgba(255,255,255,0.4)}
+.oos{opacity:0.4;pointer-events:none}
+
+/* ── BUY MODAL ── */
+#buyModal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:200}
+#buyModal.open{display:flex}
+.buy-box{background:#1a2d1a;border:2px solid #c9a84c;border-radius:8px;padding:24px;width:min(380px,95vw);box-shadow:0 20px 60px rgba(0,0,0,0.8)}
+.buy-box h3{color:#c9a84c;font-size:1.1rem;margin-bottom:12px;letter-spacing:2px}
+.buy-img{width:100%;height:140px;border-radius:6px;overflow:hidden;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:3rem;margin-bottom:12px}
+.buy-img img{width:100%;height:100%;object-fit:cover}
+.buy-price{font-size:1.8rem;color:#c9a84c;font-weight:bold;text-align:center;margin:8px 0}
+.buy-desc{font-size:0.75rem;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:12px}
+.qty-row{display:flex;align-items:center;justify-content:center;gap:14px;margin:12px 0}
+.qty-btn{width:32px;height:32px;background:rgba(255,255,255,0.1);border:1px solid rgba(201,168,76,0.4);border-radius:4px;color:#c9a84c;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center}
+.qty-btn:hover{background:rgba(201,168,76,0.2)}
+.qty-val{font-size:1.2rem;color:#fff;min-width:30px;text-align:center}
+.btn-row{display:flex;gap:8px;margin-top:12px}
+.mc-btn{flex:1;padding:10px;border:none;border-radius:5px;cursor:pointer;font-family:'Courier New',monospace;font-size:0.8rem;font-weight:bold;letter-spacing:1px;transition:all 0.15s}
+.mc-btn-gold{background:linear-gradient(135deg,#8a6820,#c9a84c);color:#0e2018}
+.mc-btn-gold:hover{filter:brightness(1.15)}
+.mc-btn-red{background:rgba(192,57,43,0.5);border:1px solid #c0392b;color:#ff8080}
+.mc-btn-red:hover{background:rgba(192,57,43,0.7)}
+.status-line{font-size:0.75rem;text-align:center;margin-top:8px;min-height:20px}
+.status-ok{color:#6dffb0}
+.status-err{color:#ff8080}
+
+/* ── AUTH / DASHBOARD ── */
+#authUI{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:100;display:none}
+#authUI.open{display:flex}
+.auth-box{background:#1a2d1a;border:2px solid #c9a84c;border-radius:10px;padding:28px;width:min(400px,95vw);max-height:90vh;overflow-y:auto}
+.auth-box h2{color:#c9a84c;font-size:1.4rem;letter-spacing:3px;margin-bottom:18px;text-align:center}
+.auth-tabs{display:flex;gap:4px;margin-bottom:16px}
+.auth-tab{flex:1;padding:8px;border:1px solid rgba(201,168,76,0.3);border-radius:4px;background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;font-family:'Courier New',monospace;font-size:0.75rem;letter-spacing:1px;transition:all 0.15s}
+.auth-tab.active{background:rgba(201,168,76,0.2);border-color:#c9a84c;color:#c9a84c}
+.field-label{font-size:0.65rem;letter-spacing:2px;color:rgba(255,255,255,0.4);margin-bottom:4px;margin-top:10px}
+.mc-input{width:100%;background:rgba(0,0,0,0.5);border:1px solid rgba(201,168,76,0.4);border-radius:5px;color:#fff;padding:9px 12px;font-family:'Courier New',monospace;font-size:0.85rem;outline:none;transition:border-color 0.2s}
+.mc-input:focus{border-color:#c9a84c}
+.mc-input::placeholder{color:rgba(255,255,255,0.25)}
+.chip-strip{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{padding:4px 10px;border-radius:12px;border:1px solid rgba(201,168,76,0.3);color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.7rem;font-family:'Courier New',monospace;background:transparent;transition:all 0.15s}
+.chip:hover{border-color:#c9a84c;color:#c9a84c}
+.auth-btn{width:100%;padding:11px;margin-top:14px;border:none;border-radius:5px;background:linear-gradient(135deg,#8a6820,#c9a84c);color:#0e2018;font-family:'Courier New',monospace;font-size:0.85rem;font-weight:bold;letter-spacing:1px;cursor:pointer;transition:filter 0.15s}
+.auth-btn:hover{filter:brightness(1.1)}
+.auth-btn:disabled{opacity:0.5;cursor:not-allowed}
+.auth-status{font-size:0.75rem;text-align:center;margin-top:8px;min-height:18px}
+
+/* ── PLAYER MENU (ESC) ── */
+#playerMenu{position:fixed;top:20px;left:20px;z-index:20;display:none}
+.pm-btn{background:rgba(0,0,0,0.7);border:1px solid rgba(201,168,76,0.4);color:#c9a84c;padding:7px 14px;border-radius:4px;cursor:pointer;font-family:'Courier New',monospace;font-size:0.72rem;letter-spacing:1px;margin-bottom:4px;display:block;width:100%;text-align:left;transition:all 0.15s}
+.pm-btn:hover{background:rgba(201,168,76,0.15);border-color:#c9a84c}
+
+/* ── INVENTAR PANEL ── */
+#invPanel{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:100}
+#invPanel.open{display:flex}
+.inv-container{background:#1a2d1a;border:3px solid #c9a84c;border-radius:8px;width:min(700px,98vw);max-height:85vh;overflow:hidden;display:flex;flex-direction:column}
+.inv-header{background:rgba(0,0,0,0.4);padding:12px 18px;border-bottom:2px solid rgba(201,168,76,0.3);display:flex;justify-content:space-between;align-items:center}
+.inv-header h3{color:#c9a84c;letter-spacing:2px;font-size:1rem}
+.inv-grid-mc{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding:14px;overflow-y:auto}
+.inv-slot{background:rgba(0,0,0,0.4);border:1px solid rgba(201,168,76,0.2);border-radius:5px;padding:8px;text-align:center;cursor:pointer;transition:border-color 0.15s}
+.inv-slot:hover{border-color:#c9a84c}
+.inv-slot-img{height:70px;display:flex;align-items:center;justify-content:center;font-size:2rem;overflow:hidden;border-radius:3px;margin-bottom:5px;background:rgba(0,0,0,0.3)}
+.inv-slot-img img{width:100%;height:100%;object-fit:cover}
+.inv-slot-name{font-size:0.72rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.inv-slot-meta{font-size:0.6rem;color:rgba(255,255,255,0.4)}
+.empty-inv{text-align:center;padding:40px;color:rgba(255,255,255,0.3);font-size:0.85rem;grid-column:1/-1}
+
+/* ── ITEM USE POPUP ── */
+#usePopup{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:300}
+#usePopup.open{display:flex}
+.use-box{background:#1a2d1a;border:2px solid #c9a84c;border-radius:8px;padding:22px;width:min(340px,95vw)}
+.use-box h3{color:#c9a84c;margin-bottom:12px;letter-spacing:2px}
+.use-img{width:100%;height:120px;border-radius:6px;overflow:hidden;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:2.8rem;margin-bottom:12px}
+.use-img img{width:100%;height:100%;object-fit:cover}
+.uses-dots{display:flex;gap:3px;flex-wrap:wrap;margin:6px 0}
+.ud{width:9px;height:9px;border-radius:50%;background:rgba(201,168,76,0.5)}
+.ud.used{background:rgba(255,255,255,0.1)}
+.use-meta{font-size:0.72rem;color:rgba(255,255,255,0.5);margin-bottom:12px}
+
+/* ── TRANSFER/CONNECT PANEL ── */
+#sidePanel{position:fixed;top:0;right:-340px;width:320px;height:100vh;background:#1a2d1a;border-left:2px solid #c9a84c;z-index:80;transition:right 0.3s;overflow-y:auto;padding:16px}
+#sidePanel.open{right:0}
+.sp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.sp-header h3{color:#c9a84c;letter-spacing:2px;font-size:0.95rem}
+.sp-tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap}
+.sp-tab{padding:6px 10px;border:1px solid rgba(201,168,76,0.3);border-radius:3px;background:transparent;color:rgba(255,255,255,0.5);cursor:pointer;font-family:'Courier New',monospace;font-size:0.68rem;letter-spacing:1px;transition:all 0.15s}
+.sp-tab.active{background:rgba(201,168,76,0.2);border-color:#c9a84c;color:#c9a84c}
+.sp-section{display:none}
+.sp-section.active{display:block}
+.conn-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border:1px solid rgba(201,168,76,0.15);border-radius:5px;margin-bottom:6px;font-size:0.75rem}
+.pass-box{background:rgba(0,0,0,0.6);border:2px solid #c9a84c;border-radius:6px;padding:10px;text-align:center;letter-spacing:5px;font-size:1.1rem;color:#c9a84c;cursor:pointer;margin-bottom:12px;user-select:all}
+.tx-item{display:flex;justify-content:space-between;font-size:0.72rem;padding:5px 0;border-bottom:1px solid rgba(201,168,76,0.08)}
+.tx-plus{color:#6dffb0}
+.tx-minus{color:#ff8080}
+.mc-select{width:100%;background:rgba(0,0,0,0.5);border:1px solid rgba(201,168,76,0.4);border-radius:5px;color:#fff;padding:8px;font-family:'Courier New',monospace;font-size:0.8rem;outline:none;margin-bottom:8px}
+.mc-select option{background:#1a2d1a}
+.sp-label{font-size:0.6rem;letter-spacing:2px;color:rgba(255,255,255,0.35);margin-bottom:4px;margin-top:10px}
+.sp-btn{width:100%;padding:9px;border:none;border-radius:5px;cursor:pointer;font-family:'Courier New',monospace;font-size:0.75rem;letter-spacing:1px;margin-bottom:6px;transition:all 0.15s}
+.sp-btn-gold{background:linear-gradient(135deg,#8a6820,#c9a84c);color:#0e2018;font-weight:bold}
+.sp-btn-gold:hover{filter:brightness(1.1)}
+.sp-btn-green{background:rgba(26,156,88,0.3);border:1px solid #1a9c58;color:#6dffb0}
+.sp-btn-red{background:rgba(192,57,43,0.3);border:1px solid #c0392b;color:#ff8080}
+.sp-status{font-size:0.72rem;min-height:18px;text-align:center;margin:4px 0}
+.sp-tx-list{max-height:200px;overflow-y:auto}
+.notif-bar{position:fixed;top:0;left:0;right:0;background:linear-gradient(135deg,#8a6820,#c9a84c);color:#0e2018;text-align:center;padding:11px;font-size:0.8rem;font-weight:bold;letter-spacing:1px;z-index:500;transform:translateY(-100%);transition:transform 0.4s}
+.notif-bar.show{transform:translateY(0)}
+
+/* scroll */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:rgba(0,0,0,0.2)}
+::-webkit-scrollbar-thumb{background:#8a6820;border-radius:3px}
 </style>
 </head>
 <body>
 
-<div id="notification-bar">🔔</div>
+<div id="notifBar" class="notif-bar"></div>
+<canvas id="gameCanvas"></canvas>
 
-<div class="loading-overlay" id="loading-overlay">
-  <div class="loading-spinner"></div>
-  <div style="color:var(--gold);font-family:'Playfair Display',serif;font-size:1.2rem;letter-spacing:3px;">SPIELBANK</div>
-  <div style="color:rgba(245,230,200,0.4);font-size:0.75rem;">Verbinde mit Server...</div>
+<!-- HUD -->
+<div id="crosshair"></div>
+<div id="hud">
+  <div id="hud-balance">💰 —</div>
+  <div id="hud-hint">E = Shop betreten · I = Inventar · Tab = Menü · Maus = Schauen · WASD = Laufen</div>
+</div>
+<div id="hotbar">
+  <div class="hotbar-slot active">🗡️</div>
+  <div class="hotbar-slot">🧲</div>
+  <div class="hotbar-slot">💰</div>
+  <div class="hotbar-slot">📦</div>
+  <div class="hotbar-slot active" style="border-color:#c9a84c">🛒</div>
+</div>
+<div id="minimap"><canvas id="minimapCanvas" width="100" height="100"></canvas></div>
+<div id="toast"></div>
+
+<!-- Player Menu -->
+<div id="playerMenu">
+  <button class="pm-btn" onclick="toggleSidePanel('transfer')">💸 Transfer senden</button>
+  <button class="pm-btn" onclick="toggleSidePanel('verbinden')">🔗 Verbinden</button>
+  <button class="pm-btn" onclick="toggleSidePanel('verlauf')">📜 Verlauf</button>
+  <button class="pm-btn" onclick="openInvPanel()">🎒 Inventar</button>
+  <button class="pm-btn" onclick="openMyShop()">🏪 Mein Shop</button>
+  <button class="pm-btn" onclick="logout()">🚪 Abmelden</button>
 </div>
 
-<!-- LOGIN SCREEN -->
-<div id="screen-login" class="screen">
-  <header>
-    <h1>SPIELBANK</h1>
-    <p><span class="realtime-dot"></span>MARKTPLATZ · LIVE · ECHTZEIT</p>
-  </header>
-  <div class="container">
-    <div class="card" style="max-width:440px;margin:24px auto;">
-      <div class="tabs">
-        <button class="tab-btn active" id="auth-tab-reg" onclick="switchAuthTab('register')">Konto erstellen</button>
-        <button class="tab-btn" id="auth-tab-login" onclick="switchAuthTab('login')">Einloggen</button>
+<!-- LOADING -->
+<div id="loading">
+  <h1>CRAFTMARKT</h1>
+  <p>MINECRAFT SHOPPING SIMULATOR</p>
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <p id="loading-text" style="font-size:0.7rem;color:rgba(255,255,255,0.4);">Welt wird generiert...</p>
+</div>
+
+<!-- CLICK TO PLAY -->
+<div id="clickToPlay" style="display:none">
+  <h2>CRAFTMARKT</h2>
+  <p>Klicke zum Spielen</p>
+  <p><span class="key">WASD</span> Laufen &nbsp; <span class="key">Maus</span> Schauen &nbsp; <span class="key">E</span> Shop betreten &nbsp; <span class="key">I</span> Inventar &nbsp; <span class="key">Tab</span> Menü</p>
+  <p style="margin-top:8px;font-size:0.68rem;color:rgba(255,255,255,0.4);">ESC = Maus freigeben</p>
+</div>
+
+<!-- AUTH UI -->
+<div id="authUI" class="open">
+  <div class="auth-box">
+    <h2>⛏ CRAFTMARKT</h2>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="aTab-reg" onclick="switchAuthTab('reg')">Konto erstellen</button>
+      <button class="auth-tab" id="aTab-login" onclick="switchAuthTab('login')">Einloggen</button>
+    </div>
+    <div id="auth-reg">
+      <div class="field-label">SPIELERNAME</div>
+      <input class="mc-input" id="reg-name" placeholder="Dein Name..." autocomplete="off"/>
+      <div class="field-label">PASSWORT</div>
+      <input class="mc-input" id="reg-pass" placeholder="Passwort (min. 3 Zeichen)..." autocomplete="off"/>
+      <div class="field-label">STARTGUTHABEN (€)</div>
+      <div class="chip-strip">
+        <span class="chip" onclick="document.getElementById('reg-geld').value=50">50€</span>
+        <span class="chip" onclick="document.getElementById('reg-geld').value=100">100€</span>
+        <span class="chip" onclick="document.getElementById('reg-geld').value=200">200€</span>
+        <span class="chip" onclick="document.getElementById('reg-geld').value=500">500€</span>
       </div>
-      <div id="tab-register">
-        <h3>Neues Konto erstellen</h3>
-        <div class="label">Name</div>
-        <input type="text" id="reg-name" placeholder="Dein Name..." autocomplete="off" />
-        <div class="label">Passwort</div>
-        <input type="text" id="reg-pass" placeholder="Passwort wählen..." autocomplete="off" />
-        <div class="label">Startguthaben (€)</div>
-        <div class="chip-row">
-          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=50">50€</span>
-          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=100">100€</span>
-          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=200">200€</span>
-          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=500">500€</span>
+      <input class="mc-input" id="reg-geld" type="number" placeholder="Oder eingeben..." min="0"/>
+      <div class="auth-status" id="reg-status"></div>
+      <button class="auth-btn" id="reg-btn" onclick="registerAccount()">⛏ Konto erstellen</button>
+    </div>
+    <div id="auth-login" style="display:none">
+      <div class="field-label">SPIELERNAME</div>
+      <input class="mc-input" id="login-name" placeholder="Dein Name..." autocomplete="off"/>
+      <div class="field-label">PASSWORT</div>
+      <input class="mc-input" id="login-pass" type="password" placeholder="Passwort..." autocomplete="off"/>
+      <div class="auth-status" id="login-status"></div>
+      <button class="auth-btn" id="login-btn" onclick="loginAccount()">🎮 Einloggen & Spielen</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP UI -->
+<div id="shopUI">
+  <div class="shop-container">
+    <div class="shop-header">
+      <div>
+        <h2 id="shop-title">🏪 MARKTPLATZ</h2>
+        <div style="font-size:0.65rem;color:rgba(255,255,255,0.4);letter-spacing:2px;margin-top:2px" id="shop-subtitle">Wähle einen Verkäufer</div>
+      </div>
+      <button class="shop-close" onclick="closeShop()">✕</button>
+    </div>
+    <div class="shop-body">
+      <div class="shop-sidebar">
+        <div class="field-label" style="margin-top:0">VERBUNDENE SPIELER</div>
+        <div id="seller-list"></div>
+      </div>
+      <div class="shop-main">
+        <div id="shop-no-seller" style="text-align:center;padding:40px;color:rgba(255,255,255,0.3);font-size:0.85rem">
+          ← Wähle links einen Spieler aus, um seinen Shop zu sehen.
         </div>
-        <input type="number" id="reg-geld" placeholder="Oder selbst eingeben..." min="0" />
-        <div id="reg-status" class="status-msg"></div>
-        <button class="btn btn-gold btn-full" id="reg-btn" onclick="registerAccount()">Konto erstellen</button>
-      </div>
-      <div id="tab-login" style="display:none">
-        <h3>Einloggen</h3>
-        <div class="label">Name</div>
-        <input type="text" id="login-name" placeholder="Dein Name..." autocomplete="off" />
-        <div class="label">Passwort</div>
-        <input type="password" id="login-pass" placeholder="Passwort..." autocomplete="off" />
-        <div id="login-status" class="status-msg"></div>
-        <button class="btn btn-gold btn-full" id="login-btn" onclick="loginAccount()">Einloggen</button>
+        <div id="shop-products-area" style="display:none">
+          <div class="cat-row" id="shop-cats"></div>
+          <div class="prod-grid" id="shop-prod-grid"></div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- DASHBOARD SCREEN -->
-<div id="screen-dashboard" class="screen">
-  <header>
-    <h1>SPIELBANK</h1>
-    <p><span class="realtime-dot"></span>LIVE · MARKTPLATZ</p>
-    <div class="device-badge" id="device-badge">—</div>
-  </header>
-  <div class="container">
-    <div class="card">
-      <div class="balance-display">
-        <div class="user-name-display" id="dash-name">—</div>
-        <div class="balance-amount" id="dash-balance">0,00 €</div>
-        <div class="balance-label">Aktuelles Guthaben</div>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-        <button class="btn btn-outline btn-sm" onclick="showTab('verbinden')">🔗 Verbinden</button>
-        <button class="btn btn-outline btn-sm" onclick="showTab('transfer')">💸 Senden</button>
-        <button class="btn btn-outline btn-sm" onclick="showTab('marktplatz')">🛒 Markt</button>
-        <button class="btn btn-outline btn-sm" onclick="showTab('meinshop')">🏪 Mein Shop</button>
-        <button class="btn btn-outline btn-sm" onclick="showTab('inventar')">🎒 Inventar</button>
-        <button class="btn btn-outline btn-sm" onclick="showTab('rechner')">🧮 Rechner</button>
-        <button class="btn btn-outline btn-sm" onclick="showTab('verlauf')">📜 Verlauf</button>
-        <button class="btn btn-red btn-sm" onclick="logout()">Abmelden</button>
-      </div>
+<!-- BUY MODAL -->
+<div id="buyModal">
+  <div class="buy-box">
+    <h3 id="buy-name">Produkt</h3>
+    <div class="buy-img" id="buy-img-div"></div>
+    <div class="buy-price" id="buy-price-disp">0,00 €</div>
+    <div class="buy-desc" id="buy-desc-disp"></div>
+    <div style="font-size:0.7rem;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:8px">Lager: <span id="buy-stock-disp">0</span></div>
+    <div class="qty-row">
+      <button class="qty-btn" onclick="changeBuyQty(-1)">−</button>
+      <span class="qty-val" id="buy-qty-disp">1</span>
+      <button class="qty-btn" onclick="changeBuyQty(1)">+</button>
     </div>
+    <div class="status-line" id="buy-status"></div>
+    <div class="btn-row">
+      <button class="mc-btn mc-btn-gold" id="buy-confirm-btn" onclick="confirmBuy()">🛒 Kaufen</button>
+      <button class="mc-btn mc-btn-red" onclick="closeBuyModal()">✕</button>
+    </div>
+  </div>
+</div>
 
-    <div class="tabs">
-      <button class="tab-btn active" id="nav-verbinden" onclick="showTab('verbinden')">🔗 Verbinden</button>
-      <button class="tab-btn" id="nav-transfer" onclick="showTab('transfer')">💸 Transfer</button>
-      <button class="tab-btn" id="nav-marktplatz" onclick="showTab('marktplatz')">🛒 Markt</button>
-      <button class="tab-btn" id="nav-meinshop" onclick="showTab('meinshop')">🏪 Shop</button>
-      <button class="tab-btn" id="nav-inventar" onclick="showTab('inventar')">🎒 Inventar</button>
-      <button class="tab-btn" id="nav-rechner" onclick="showTab('rechner')">🧮 Rechner</button>
-      <button class="tab-btn" id="nav-verlauf" onclick="showTab('verlauf')">📜 Verlauf</button>
+<!-- INVENTAR PANEL -->
+<div id="invPanel">
+  <div class="inv-container">
+    <div class="inv-header">
+      <h3>🎒 INVENTAR</h3>
+      <button class="shop-close" onclick="closeInvPanel()">✕</button>
     </div>
+    <div id="inv-cat-row" class="cat-row" style="padding:10px 14px 0">
+      <button class="cat-pill active" onclick="filterInv('alle')">Alle</button>
+      <button class="cat-pill" onclick="filterInv('essen')">🍔 Essen</button>
+      <button class="cat-pill" onclick="filterInv('kleidung')">👕 Kleidung</button>
+      <button class="cat-pill" onclick="filterInv('wohnung')">🏠 Wohnung</button>
+      <button class="cat-pill" onclick="filterInv('moebel')">🛋️ Möbel</button>
+      <button class="cat-pill" onclick="filterInv('transport')">🚗 Transport</button>
+    </div>
+    <div class="inv-grid-mc" id="inv-grid-mc"></div>
+  </div>
+</div>
 
-    <!-- VERBINDEN TAB -->
-    <div id="tab-verbinden" class="card">
-      <h2>🔗 Geräte verbinden</h2>
-      <h3>Dein Verbindungspasswort</h3>
-      <p style="font-size:0.75rem;color:rgba(245,230,200,0.5);margin-bottom:8px;">Zeige dieses Passwort dem anderen Gerät:</p>
-      <div class="pass-box" id="my-password-display">···</div>
-      <hr class="divider">
-      <h3>Mit anderem Konto verbinden</h3>
-      <div class="label">Passwort des anderen Kontos</div>
-      <input type="text" id="connect-pass" placeholder="Passwort eingeben..." autocomplete="off" />
-      <div id="connect-status" class="status-msg"></div>
-      <button class="btn btn-gold btn-full" onclick="connectToAccount()">🔗 Verbinden</button>
-      <hr class="divider">
-      <h3>Verbundene Konten</h3>
-      <div id="connected-list"><p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p></div>
+<!-- USE POPUP -->
+<div id="usePopup">
+  <div class="use-box">
+    <h3 id="use-name">—</h3>
+    <div class="use-img" id="use-img-div"></div>
+    <div class="use-meta" id="use-meta"></div>
+    <div class="uses-dots" id="use-dots"></div>
+    <div class="status-line" id="use-status"></div>
+    <div class="btn-row">
+      <button class="mc-btn mc-btn-gold" id="use-main-btn" onclick="useItem()">Benutzen</button>
+      <button class="mc-btn mc-btn-red" onclick="closeUsePopup()">✕</button>
     </div>
+  </div>
+</div>
 
-    <!-- TRANSFER TAB -->
-    <div id="tab-transfer" class="card" style="display:none">
-      <h2>💸 Geld senden</h2>
-      <div class="label">Empfänger</div>
-      <select id="transfer-to"><option value="">— Konto wählen —</option></select>
-      <div class="label">Betrag (€)</div>
-      <div class="chip-row">
-        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=5">5€</span>
-        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=10">10€</span>
-        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=20">20€</span>
-        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=50">50€</span>
-        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=100">100€</span>
-      </div>
-      <input type="number" id="transfer-amount" placeholder="Betrag in €..." min="0.01" step="0.01" />
-      <div class="label">Grund (optional)</div>
-      <input type="text" id="transfer-note" placeholder="z.B. Bier, Einsatz..." />
-      <div id="transfer-status" class="status-msg"></div>
-      <button class="btn btn-green btn-full" id="send-money-btn" onclick="sendMoney()">💸 Jetzt senden</button>
-    </div>
+<!-- SIDE PANEL (Transfer/Connect/Verlauf) -->
+<div id="sidePanel">
+  <div class="sp-header">
+    <h3 id="sp-title">MENÜ</h3>
+    <button class="shop-close" onclick="closeSidePanel()">✕</button>
+  </div>
+  <div class="sp-tabs">
+    <button class="sp-tab active" onclick="spTab('verbinden')">🔗 Verbinden</button>
+    <button class="sp-tab" onclick="spTab('transfer')">💸 Transfer</button>
+    <button class="sp-tab" onclick="spTab('meinshop')">🏪 Shop</button>
+    <button class="sp-tab" onclick="spTab('verlauf')">📜 Verlauf</button>
+  </div>
 
-    <!-- MARKTPLATZ TAB -->
-    <div id="tab-marktplatz" class="card" style="display:none">
-      <h2>🛒 Marktplatz</h2>
-      <p style="font-size:0.75rem;color:rgba(245,230,200,0.4);margin-bottom:14px;">Wähle einen verbundenen Verkäufer, um seine Produkte zu sehen.</p>
-      <div class="label">Verkäufer auswählen</div>
-      <div id="seller-list-market">
-        <p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p>
-      </div>
-      <div id="market-products-area" style="display:none;margin-top:16px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-          <h3 id="market-seller-title" style="margin:0;">Produkte von —</h3>
-          <button class="btn btn-outline btn-sm" onclick="closeMarketSeller()">✕ Schließen</button>
-        </div>
-        <div class="cat-filter" id="market-cat-filter"></div>
-        <div class="shop-grid" id="market-product-grid"></div>
-      </div>
-    </div>
+  <div id="sp-verbinden" class="sp-section active">
+    <div class="sp-label">DEIN PASSWORT</div>
+    <div class="pass-box" id="sp-my-pass" onclick="copyPass()">···</div>
+    <div class="sp-label">MIT ANDEREM VERBINDEN</div>
+    <input class="mc-input" id="sp-conn-pass" placeholder="Passwort eingeben..." autocomplete="off" style="margin-bottom:8px"/>
+    <div class="sp-status" id="sp-conn-status"></div>
+    <button class="sp-btn sp-btn-gold" onclick="connectAccount()">🔗 Verbinden</button>
+    <div class="sp-label" style="margin-top:14px">VERBUNDENE SPIELER</div>
+    <div id="sp-conn-list"><p style="font-size:0.72rem;color:rgba(255,255,255,0.3);">Noch keine.</p></div>
+  </div>
 
-    <!-- MEIN SHOP TAB -->
-    <div id="tab-meinshop" class="card" style="display:none">
-      <h2>🏪 Mein Shop</h2>
-      <div class="tabs" style="margin-bottom:14px;">
-        <button class="tab-btn active" id="shop-tab-produkte" onclick="switchShopTab('produkte')">Meine Produkte</button>
-        <button class="tab-btn" id="shop-tab-upload" onclick="switchShopTab('upload')">+ Produkt hochladen</button>
-        <button class="tab-btn" id="shop-tab-resell" onclick="switchShopTab('resell')">↩️ Weiterverkaufen</button>
-      </div>
-      <div id="shop-produkte">
-        <div id="my-products-list">
-          <div class="empty-state"><div class="icon">📦</div>Noch keine Produkte hochgeladen.</div>
-        </div>
-      </div>
-      <div id="shop-upload" style="display:none">
-        <h3>Neues Produkt hochladen</h3>
-        <div class="label">Produktbild</div>
-        <label class="img-upload-label" for="upload-img-input">
-          <div class="img-upload-area" id="upload-img-area">
-            <span style="font-size:1.8rem;">📷</span>
-            <span>Bild auswählen oder hier tippen</span>
-          </div>
-        </label>
-        <input type="file" id="upload-img-input" accept="image/*" onchange="handleImgUpload(event)" />
-        <input type="hidden" id="upload-img-data" />
-        <div class="label">Produktname</div>
-        <input type="text" id="upload-name" placeholder="z.B. Burger, T-Shirt, Sofa..." />
-        <div class="label">Kategorie</div>
-        <select id="upload-category">
-          <option value="">— Kategorie wählen —</option>
-          <option value="essen">🍔 Essen</option>
-          <option value="kleidung">👕 Kleidung</option>
-          <option value="wohnung">🏠 Wohnung</option>
-          <option value="moebel">🛋️ Möbel</option>
-          <option value="transport">🚗 Transportmittel</option>
-        </select>
-        <div class="label">Preis (€)</div>
-        <input type="number" id="upload-price" placeholder="0.00" min="0.01" step="0.01" />
-        <div class="label">Anzahl / Lagerbestand</div>
-        <input type="number" id="upload-stock" placeholder="z.B. 10" min="1" step="1" value="1" />
-        <div class="label">Beschreibung (optional)</div>
-        <textarea id="upload-desc" placeholder="Kurze Beschreibung..." rows="2" style="resize:vertical;"></textarea>
-        <div id="upload-status" class="status-msg"></div>
-        <button class="btn btn-gold btn-full" id="upload-btn" onclick="uploadProduct()">📤 Produkt hochladen</button>
-      </div>
-      <div id="shop-resell" style="display:none">
-        <h3>Inventar-Artikel weiterverkaufen</h3>
-        <p style="font-size:0.75rem;color:rgba(245,230,200,0.4);margin-bottom:12px;">Wähle einen gekauften Artikel aus deinem Inventar und stelle ihn in deinen Shop.</p>
-        <div id="resell-inv-list">
-          <div class="empty-state"><div class="icon">🎒</div>Kein Inventar zum Weiterverkaufen.</div>
-        </div>
-      </div>
+  <div id="sp-transfer" class="sp-section" style="display:none">
+    <div class="sp-label">EMPFÄNGER</div>
+    <select class="mc-select" id="sp-transfer-to"></select>
+    <div class="sp-label">BETRAG (€)</div>
+    <div class="chip-strip">
+      <span class="chip" onclick="document.getElementById('sp-transfer-amt').value=5">5</span>
+      <span class="chip" onclick="document.getElementById('sp-transfer-amt').value=10">10</span>
+      <span class="chip" onclick="document.getElementById('sp-transfer-amt').value=20">20</span>
+      <span class="chip" onclick="document.getElementById('sp-transfer-amt').value=50">50</span>
     </div>
+    <input class="mc-input" id="sp-transfer-amt" type="number" placeholder="Betrag €..." min="0.01" step="0.01" style="margin-bottom:6px"/>
+    <div class="sp-label">GRUND</div>
+    <input class="mc-input" id="sp-transfer-note" placeholder="Optional..." style="margin-bottom:8px"/>
+    <div class="sp-status" id="sp-transfer-status"></div>
+    <button class="sp-btn sp-btn-green" onclick="sendMoney()">💸 Senden</button>
+  </div>
 
-    <!-- INVENTAR TAB -->
-    <div id="tab-inventar" class="card" style="display:none">
-      <h2>🎒 Mein Inventar</h2>
-      <div class="cat-filter" id="inv-cat-filter">
-        <button class="cat-chip active" onclick="filterInv('alle')">Alle</button>
-        <button class="cat-chip" onclick="filterInv('essen')">🍔 Essen</button>
-        <button class="cat-chip" onclick="filterInv('kleidung')">👕 Kleidung</button>
-        <button class="cat-chip" onclick="filterInv('wohnung')">🏠 Wohnung</button>
-        <button class="cat-chip" onclick="filterInv('moebel')">🛋️ Möbel</button>
-        <button class="cat-chip" onclick="filterInv('transport')">🚗 Transport</button>
-      </div>
-      <div class="inv-grid" id="inv-grid">
-        <div class="empty-state" style="grid-column:1/-1;"><div class="icon">🎒</div>Noch nichts gekauft.</div>
-      </div>
+  <div id="sp-meinshop" class="sp-section" style="display:none">
+    <div class="sp-label">MEINE PRODUKTE</div>
+    <div id="sp-myprods"></div>
+    <div style="margin-top:10px;border-top:1px solid rgba(201,168,76,0.2);padding-top:10px">
+    <div class="sp-label">NEUES PRODUKT</div>
+    <input class="mc-input" id="sp-prod-name" placeholder="Name..." style="margin-bottom:6px"/>
+    <select class="mc-select" id="sp-prod-cat">
+      <option value="">— Kategorie —</option>
+      <option value="essen">🍔 Essen</option>
+      <option value="kleidung">👕 Kleidung</option>
+      <option value="wohnung">🏠 Wohnung</option>
+      <option value="moebel">🛋️ Möbel</option>
+      <option value="transport">🚗 Transport</option>
+    </select>
+    <input class="mc-input" id="sp-prod-price" type="number" placeholder="Preis €..." step="0.01" style="margin-bottom:6px"/>
+    <input class="mc-input" id="sp-prod-stock" type="number" placeholder="Lager..." value="1" style="margin-bottom:8px"/>
+    <div class="sp-status" id="sp-prod-status"></div>
+    <button class="sp-btn sp-btn-gold" onclick="uploadProductQuick()">📤 Hochladen</button>
     </div>
+  </div>
 
-    <!-- RECHNER TAB -->
-    <div id="tab-rechner" class="card" style="display:none">
-      <h2>🧮 Kassenrechner</h2>
-      <div class="calc-display" id="calc-display">0</div>
-      <div style="font-size:0.72rem;color:rgba(245,230,200,0.4);margin-bottom:8px;min-height:20px;" id="calc-note-display">Artikel hinzufügen...</div>
-      <div style="display:flex;gap:6px;margin-bottom:8px;">
-        <input type="text" id="artikel-name" placeholder="Artikel..." style="margin:0;flex:2;" />
-        <input type="number" id="artikel-preis" placeholder="€" style="margin:0;flex:1;" min="0" step="0.01" />
-        <button class="btn btn-gold btn-sm" onclick="addArtikel()">+</button>
-      </div>
-      <div class="item-list" id="item-list"></div>
-      <hr class="divider" style="margin:8px 0;">
-      <div class="calc-grid">
-        <button class="calc-btn clear wide" onclick="clearCalc()">C</button>
-        <button class="calc-btn op" onclick="calcInput('/')">÷</button>
-        <button class="calc-btn op" onclick="calcInput('*')">×</button>
-        <button class="calc-btn" onclick="calcInput('7')">7</button>
-        <button class="calc-btn" onclick="calcInput('8')">8</button>
-        <button class="calc-btn" onclick="calcInput('9')">9</button>
-        <button class="calc-btn op" onclick="calcInput('-')">−</button>
-        <button class="calc-btn" onclick="calcInput('4')">4</button>
-        <button class="calc-btn" onclick="calcInput('5')">5</button>
-        <button class="calc-btn" onclick="calcInput('6')">6</button>
-        <button class="calc-btn op" onclick="calcInput('+')">+</button>
-        <button class="calc-btn" onclick="calcInput('1')">1</button>
-        <button class="calc-btn" onclick="calcInput('2')">2</button>
-        <button class="calc-btn" onclick="calcInput('3')">3</button>
-        <button class="calc-btn eq" style="grid-row:span 2;" onclick="calcEquals()">=</button>
-        <button class="calc-btn wide" onclick="calcInput('0')">0</button>
-        <button class="calc-btn" onclick="calcInput('.')">.</button>
-      </div>
-      <hr class="divider">
-      <h3>Zahlungsanfrage senden</h3>
-      <select id="payment-req-to"><option value="">— Empfänger wählen —</option></select>
-      <div id="payment-req-status" class="status-msg"></div>
-      <button class="btn btn-gold btn-full" onclick="sendPaymentRequest()">🧾 Zahlungsanfrage senden</button>
-    </div>
-
-    <!-- VERLAUF TAB -->
-    <div id="tab-verlauf" class="card" style="display:none">
-      <h2>📜 Transaktionsverlauf</h2>
-      <div class="tx-list" id="tx-list"><p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p></div>
-    </div>
+  <div id="sp-verlauf" class="sp-section" style="display:none">
+    <div class="sp-tx-list" id="sp-tx-list"><p style="font-size:0.72rem;color:rgba(255,255,255,0.3);">Noch keine Transaktionen.</p></div>
   </div>
 </div>
 
 <!-- PAYMENT MODAL -->
-<div class="modal-overlay" id="payment-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="declinePaymentRequest()">✕</button>
-    <h2>🧾 Zahlungsanfrage!</h2>
-    <p style="font-size:0.82rem;color:rgba(245,230,200,0.6);" id="modal-from-text">Von: —</p>
-    <div class="modal-amount" id="modal-amount">0,00 €</div>
-    <div style="font-size:0.72rem;color:rgba(245,230,200,0.5);text-align:center;margin-bottom:16px;line-height:1.6;" id="modal-items-text"></div>
-    <div id="modal-status" class="status-msg"></div>
-    <button class="btn btn-green btn-full" onclick="acceptPaymentRequest()">✅ Jetzt bezahlen</button>
-    <button class="btn btn-red btn-full" style="margin-bottom:0;" onclick="declinePaymentRequest()">❌ Ablehnen</button>
-  </div>
-</div>
-
-<!-- BUY PRODUCT MODAL -->
-<div class="modal-overlay" id="buy-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeBuyModal()">✕</button>
-    <div id="buy-modal-img" style="width:100%;height:160px;border-radius:8px;overflow:hidden;margin-bottom:14px;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:3rem;"></div>
-    <h2 id="buy-modal-name">Produkt</h2>
-    <p style="font-size:0.75rem;color:rgba(245,230,200,0.4);margin-bottom:6px;" id="buy-modal-seller">Verkäufer: —</p>
-    <p style="font-size:0.75rem;color:rgba(245,230,200,0.5);margin-bottom:10px;" id="buy-modal-desc"></p>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-      <span style="font-size:0.72rem;color:rgba(245,230,200,0.4);">PREIS</span>
-      <span style="font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--gold);" id="buy-modal-price">0,00 €</span>
+<div id="payModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;z-index:400">
+  <div class="buy-box">
+    <h3>🧾 ZAHLUNGSANFRAGE</h3>
+    <p style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-bottom:8px" id="pay-from-text">Von: —</p>
+    <div class="buy-price" id="pay-amount">0,00 €</div>
+    <div style="font-size:0.72rem;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:12px" id="pay-items"></div>
+    <div class="status-line" id="pay-status"></div>
+    <div class="btn-row">
+      <button class="mc-btn mc-btn-gold" onclick="acceptPayment()">✅ Bezahlen</button>
+      <button class="mc-btn mc-btn-red" onclick="declinePayment()">❌ Ablehnen</button>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <span style="font-size:0.72rem;color:rgba(245,230,200,0.4);">LAGER</span>
-      <span style="font-size:0.85rem;color:var(--cream);" id="buy-modal-stock">0</span>
-    </div>
-    <div class="label">Menge</div>
-    <div style="display:flex;gap:6px;align-items:center;margin-bottom:14px;">
-      <button class="btn btn-outline btn-sm" onclick="changeBuyQty(-1)">−</button>
-      <span id="buy-qty-display" style="font-size:1.1rem;color:var(--gold);min-width:30px;text-align:center;">1</span>
-      <button class="btn btn-outline btn-sm" onclick="changeBuyQty(1)">+</button>
-    </div>
-    <div id="buy-modal-status" class="status-msg"></div>
-    <button class="btn btn-green btn-full" id="confirm-buy-btn" onclick="confirmBuy()">🛒 Kaufen</button>
-  </div>
-</div>
-
-<!-- USE ITEM MODAL -->
-<div class="modal-overlay" id="use-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeUseModal()">✕</button>
-    <div id="use-modal-img" style="width:100%;height:140px;border-radius:8px;overflow:hidden;margin-bottom:14px;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:3rem;"></div>
-    <h2 id="use-modal-name">—</h2>
-    <p style="font-size:0.75rem;color:rgba(245,230,200,0.5);margin:8px 0 14px;" id="use-modal-meta"></p>
-    <div id="use-modal-uses" class="uses-bar" style="margin-bottom:16px;flex-wrap:wrap;gap:3px;"></div>
-    <button class="btn btn-gold btn-full" id="use-modal-btn" onclick="useItem()">Benutzen</button>
-    <button class="btn btn-blue btn-full" onclick="resellFromModal()">↩️ In Shop stellen</button>
-    <button class="btn btn-outline btn-full" style="margin-bottom:0;" onclick="closeUseModal()">Schließen</button>
   </div>
 </div>
 
 <script>
-// ─── SUPABASE ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE
+// ═══════════════════════════════════════════════════════════════
 const SUPA_URL = 'https://rfnciohajcemftuzefkx.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJmbmNpb2hhamNlbWZ0dXplZmt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2NzE5NDcsImV4cCI6MjA5MDI0Nzk0N30.L-K0IuyNqHudLI9R-RIsu26aawXtRsz16sjoMtn04Fk';
-const { createClient } = supabase;
-const db = createClient(SUPA_URL, SUPA_KEY);
+const db = supabase.createClient(SUPA_URL, SUPA_KEY);
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
-let currentUser   = null;
-let pendingReqId  = null;
-let calcExpr      = '0';
-let calcItems     = [];
-let calcTotal     = 0;
-let realtimeSubs  = [];
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let currentUser = null;
+let realtimeSubs = [];
+let pendingReqId = null;
 let currentBuyProduct = null;
-let buyQty        = 1;
+let buyQty = 1;
 let buyInProgress = false;
 let currentUseItem = null;
-let marketFilter  = 'alle';
-let invFilter     = 'alle';
-let marketSeller  = null;
-let marketProductsCache = {};
+let shopCatFilter = 'alle';
+let invFilter = 'alle';
+let shopSellerActive = null;
+let shopProductsCache = {};
+let spActiveSec = 'verbinden';
+let activeSideTab = '';
+let playerMenuOpen = false;
+let cache = { inv: null, invTs: 0, myProds: null, myProdsTs: 0, tx: null, txTs: 0, marketProds: {} };
+const TTL = 12000;
+const CAT_EMOJI = { essen:'🍔', kleidung:'👕', wohnung:'🏠', moebel:'🛋️', transport:'🚗' };
+const CAT_LABELS = { essen:'Essen', kleidung:'Kleidung', wohnung:'Wohnung', moebel:'Möbel', transport:'Transport' };
+const CAT_USES = { essen: 1, kleidung: 10 };
+const fmt = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
 
-// ─── LOCAL CACHES (key=username or seller name) ────────────────────────────
-const cache = {
-  tx: null,          // transaction list HTML
-  txTs: 0,           // last fetch timestamp
-  inv: null,         // inventory items array
-  invTs: 0,
-  myProds: null,     // my shop products array
-  myProdsTs: 0,
-  marketProds: {},   // { sellerName: { items:[], ts:0 } }
-  TTL_FAST: 8000,    // 8s for fast-changing data
-  TTL_SLOW: 20000,   // 20s for slower data
-  dirty: new Set(),  // which caches need refresh
-};
+// ═══════════════════════════════════════════════════════════════
+// THREE.JS WORLD
+// ═══════════════════════════════════════════════════════════════
+let scene, camera, renderer, clock;
+let moveForward=false, moveBack=false, moveLeft=false, moveRight=false;
+let velocity = new THREE.Vector3();
+let direction = new THREE.Vector3();
+let euler = new THREE.Euler(0, 0, 0, 'YXZ');
+let isPointerLocked = false;
+let shopBuildings = [];
+let interactTarget = null;
 
-const CAT_LABELS = { essen:'🍔 Essen', kleidung:'👕 Kleidung', wohnung:'🏠 Wohnung', moebel:'🛋️ Möbel', transport:'🚗 Transport' };
-const CAT_EMOJI  = { essen:'🍔', kleidung:'👕', wohnung:'🏠', moebel:'🛋️', transport:'🚗' };
-const CAT_USES   = { essen: 1, kleidung: 10 };
+function initThree() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87CEEB);
+  scene.fog = new THREE.Fog(0x87CEEB, 30, 120);
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-const fmt  = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
-const fmtN = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
-const now  = () => Date.now();
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 200);
+  camera.position.set(0, 1.7, 0);
 
-function showNotif(msg) {
-  const b = document.getElementById('notification-bar');
-  b.textContent = msg; b.classList.add('show');
-  setTimeout(() => b.classList.remove('show'), 4000);
+  renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  clock = new THREE.Clock();
+
+  // Lighting
+  const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambient);
+  const sun = new THREE.DirectionalLight(0xfffbe0, 1.2);
+  sun.position.set(50, 80, 30);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.near = 0.5;
+  sun.shadow.camera.far = 200;
+  sun.shadow.camera.left = -80;
+  sun.shadow.camera.right = 80;
+  sun.shadow.camera.top = 80;
+  sun.shadow.camera.bottom = -80;
+  scene.add(sun);
+
+  buildWorld();
+  window.addEventListener('resize', onResize);
+  document.addEventListener('keydown', onKey);
+  document.addEventListener('keyup', onKey2);
+  document.addEventListener('mousemove', onMouseMove);
+  document.getElementById('gameCanvas').addEventListener('click', requestPointerLock);
+  document.getElementById('clickToPlay').addEventListener('click', requestPointerLock);
+  document.addEventListener('pointerlockchange', onPointerLockChange);
+
+  animate();
 }
-function showStatus(id, msg, ok) {
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.textContent = msg;
-  el.className = 'status-msg show ' + (ok ? 'status-ok' : 'status-err');
-  setTimeout(() => { if(el) el.classList.remove('show'); }, 3500);
-}
-function setLoading(on) { document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none'; }
-function setBtnLoading(id, loading, label) {
-  const btn = document.getElementById(id);
-  if (!btn) return;
-  btn.disabled = loading;
-  btn.textContent = loading ? '...' : label;
+
+// ── TEXTURE HELPERS ──────────────────────────────────────────
+function makeTexture(colorHex, pixelate=true) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 16; canvas.height = 16;
+  const ctx = canvas.getContext('2d');
+  // Checkerboard pixel texture
+  const c1 = new THREE.Color(colorHex);
+  const c2 = c1.clone().multiplyScalar(0.85);
+  for(let y=0;y<16;y++) for(let x=0;x<16;x++) {
+    ctx.fillStyle = (x+y)%2===0 ? '#'+c1.getHexString() : '#'+c2.getHexString();
+    ctx.fillRect(x,y,1,1);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestFilter;
+  return tex;
 }
 
-// ─── BALANCE BUMP ANIMATION ───────────────────────────────────────────────────
-function updateBalanceDisplay(newBalance, animate=true) {
-  const el = document.getElementById('dash-balance');
-  if (!el) return;
-  el.textContent = fmt(newBalance);
-  if (animate) {
-    el.classList.remove('bump');
-    requestAnimationFrame(() => { el.classList.add('bump'); setTimeout(() => el.classList.remove('bump'), 200); });
+function blockMat(color, roughness=0.9) {
+  return new THREE.MeshLambertMaterial({ map: makeTexture(color) });
+}
+
+// ── BLOCK HELPERS ────────────────────────────────────────────
+function addBlock(x,y,z, w,h,d, mat, shadow=true) {
+  const geo = new THREE.BoxGeometry(w,h,d);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x,y,z);
+  if(shadow){mesh.castShadow=true;mesh.receiveShadow=true;}
+  scene.add(mesh);
+  return mesh;
+}
+
+// ── WORLD BUILD ───────────────────────────────────────────────
+function buildWorld() {
+  const grassMat   = blockMat(0x5a9e3a);
+  const dirtMat    = blockMat(0x8B5E3C);
+  const stoneMat   = blockMat(0x888888);
+  const sandMat    = blockMat(0xE8D48B);
+  const woodMat    = blockMat(0x8B6914);
+  const planksLMat = blockMat(0xD4AC6E);
+  const glassMat   = new THREE.MeshLambertMaterial({ color: 0xadd8e6, transparent:true, opacity:0.5 });
+  const leafMat    = blockMat(0x2d7a2d);
+  const pathMat    = blockMat(0xC8B97A);
+  const waterMat   = new THREE.MeshLambertMaterial({ color: 0x3399ff, transparent:true, opacity:0.7 });
+  const goldBlockMat = blockMat(0xFFD700);
+
+  // Ground — large flat terrain
+  for(let x=-30;x<=30;x+=2) for(let z=-30;z<=30;z+=2) {
+    addBlock(x,-0.5,z, 2,1,2, grassMat, false);
+    if(Math.random()<0.05) addBlock(x,-1.5,z, 2,1,2, dirtMat, false);
+  }
+
+  // Stone path (main road)
+  for(let z=-28;z<=28;z+=2) {
+    addBlock(-1,-0.05,z, 2,0.12,2, pathMat, false);
+  }
+  for(let x=-28;x<=28;x+=2) {
+    addBlock(x,-0.05,1, 2,0.12,2, pathMat, false);
+    addBlock(x,-0.05,-1, 2,0.12,2, pathMat, false);
+  }
+
+  // Water pond
+  addBlock(20,-0.1,20, 10,0.15,8, waterMat, false);
+  for(let xi=17;xi<=23;xi++) for(let zi=17;zi<=23;zi++) {
+    addBlock(xi,-0.5,zi,1,1,1,sandMat,false);
+  }
+
+  // Trees
+  const treePositions = [[-18,5],[-14,12],[18,-8],[22,-15],[-5,18],[-20,-18],[15,20],[-25,5]];
+  treePositions.forEach(([tx,tz]) => {
+    for(let ty=0;ty<4;ty++) addBlock(tx,ty+0.5,tz,1,1,1,woodMat);
+    for(let lx=-2;lx<=2;lx++) for(let lz=-2;lz<=2;lz++) for(let ly=4;ly<=6;ly++) {
+      if(Math.abs(lx)+Math.abs(lz)+Math.abs(ly-5)<4) addBlock(tx+lx,ly+0.5,tz+lz,1,1,1,leafMat);
+    }
+  });
+
+  // ── SHOP BUILDINGS ───────────────────────────────────────────
+  const shopDefs = [
+    { id:'shopA', pos:[-10,0,-12], color:0xC0392B, sign:'ESSEN\nSHOP', emoji:'🍔', catFilter:'essen', name:'Burger Grill' },
+    { id:'shopB', pos:[10,0,-12],  color:0x3498DB, sign:'KLEIDUNG\nSHOP', emoji:'👕', catFilter:'kleidung', name:'Fashion Store' },
+    { id:'shopC', pos:[-10,0,12],  color:0x8E44AD, sign:'WOHNEN\nSHOP', emoji:'🏠', catFilter:'wohnung', name:'Wohnwelt' },
+    { id:'shopD', pos:[10,0,12],   color:0xE67E22, sign:'MÖBEL\nSHOP', emoji:'🛋️', catFilter:'moebel', name:'Möbelhaus' },
+    { id:'shopE', pos:[0,0,-24],   color:0x27AE60, sign:'TRANSPORT\nSHOP', emoji:'🚗', catFilter:'transport', name:'Fahrzeug Markt' },
+    { id:'shopAll',pos:[0,0,0],    color:0xF1C40F, sign:'MARKT\nPLATZ', emoji:'🛒', catFilter:'alle', name:'Zentralmarkt', isCenter:true },
+  ];
+
+  shopDefs.forEach(s => buildShop(s, woodMat, planksLMat, glassMat, goldBlockMat));
+
+  // Street lamps
+  const lampPositions = [[-6,-6],[-6,6],[6,-6],[6,6],[-14,0],[14,0],[0,-14],[0,14]];
+  lampPositions.forEach(([lx,lz]) => {
+    for(let y=0;y<4;y++) addBlock(lx,y+0.5,lz, 0.25,1,0.25, stoneMat);
+    addBlock(lx,4.5,lz, 0.6,0.3,0.6, new THREE.MeshLambertMaterial({color:0xFFFF88,emissive:0xFFFF44,emissiveIntensity:1}));
+    const lamp = new THREE.PointLight(0xFFFF88, 1.5, 12);
+    lamp.position.set(lx,4.5,lz);
+    scene.add(lamp);
+  });
+
+  // Perimeter fence
+  for(let i=-28;i<=28;i+=2) {
+    [-28,28].forEach(side => {
+      addBlock(i,0.5,side, 2,1,0.3, stoneMat);
+      addBlock(side,0.5,i, 0.3,1,2, stoneMat);
+    });
   }
 }
 
-// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function buildShop(s, woodMat, planksLMat, glassMat, goldBlockMat) {
+  const [bx,by,bz] = s.pos;
+  const isCenter = s.isCenter;
+  const W = isCenter?8:6, H = isCenter?5:4, D = isCenter?8:6;
+  const wallMat = blockMat(s.color);
+  const roofMat = blockMat(s.color * 0.7 || 0x555555);
+  const accentMat = new THREE.MeshLambertMaterial({ color: s.isCenter ? 0xFFD700 : 0xffffff, emissive: s.isCenter ? 0x997700 : 0x333333, emissiveIntensity: 0.3 });
+
+  // Foundation
+  addBlock(bx,0,bz, W+0.5,0.3,D+0.5, blockMat(0xAAAAAA));
+
+  // Walls
+  // Front wall (with door gap)
+  addBlock(bx,H/2+0.15,bz-D/2, W,H,0.5, wallMat);
+  // Back wall
+  addBlock(bx,H/2+0.15,bz+D/2, W,H,0.5, wallMat);
+  // Left wall
+  addBlock(bx-W/2,H/2+0.15,bz, 0.5,H,D, wallMat);
+  // Right wall
+  addBlock(bx+W/2,H/2+0.15,bz, 0.5,H,D, wallMat);
+
+  // Door gap (visual)
+  addBlock(bx,0.5,bz-D/2, 1.2,2, 0.6, new THREE.MeshLambertMaterial({color:0x1a3a2a}));
+
+  // Windows
+  [-W/4,W/4].forEach(wx => {
+    addBlock(bx+wx, H/2, bz-D/2, 1.4,1.2,0.6, glassMat);
+    addBlock(bx+wx, H/2, bz+D/2, 1.4,1.2,0.6, glassMat);
+  });
+  addBlock(bx-W/2,H/2,bz, 0.6,1.2,1.4, glassMat);
+  addBlock(bx+W/2,H/2,bz, 0.6,1.2,1.4, glassMat);
+
+  // Roof (stepped)
+  for(let ry=0;ry<3;ry++) {
+    const rw = W - ry*1.2, rd = D - ry*1.2;
+    addBlock(bx, H+ry*0.5+0.15, bz, rw, 0.5, rd, ry===0?planksLMat:accentMat);
+  }
+  // Chimney on center shop
+  if(isCenter) {
+    addBlock(bx+2,H+1.5,bz+2, 0.8,2,0.8, goldBlockMat);
+    addBlock(bx+2,H+2.6,bz+2, 1.2,0.4,1.2, goldBlockMat);
+  }
+
+  // Sign above door
+  const signCanvas = document.createElement('canvas');
+  signCanvas.width = 256; signCanvas.height = 128;
+  const sctx = signCanvas.getContext('2d');
+  sctx.fillStyle = '#1a0a00';
+  sctx.fillRect(0,0,256,128);
+  sctx.strokeStyle = '#c9a84c';
+  sctx.lineWidth = 4;
+  sctx.strokeRect(2,2,252,124);
+  sctx.fillStyle = '#c9a84c';
+  sctx.font = 'bold 28px Courier New';
+  sctx.textAlign = 'center';
+  const lines = s.sign.split('\n');
+  lines.forEach((l,i) => sctx.fillText(l, 128, 50 + i*36));
+  const signTex = new THREE.CanvasTexture(signCanvas);
+  signTex.magFilter = THREE.NearestFilter;
+  const signMat = new THREE.MeshBasicMaterial({ map: signTex });
+  const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(3,1.5), signMat);
+  signMesh.position.set(bx, H+0.2, bz-D/2-0.31);
+  scene.add(signMesh);
+
+  // Interior light
+  const shopLight = new THREE.PointLight(0xfff5cc, 1, 10);
+  shopLight.position.set(bx, H-1, bz);
+  scene.add(shopLight);
+
+  // Collision/interact box
+  const shopBox = new THREE.Box3(
+    new THREE.Vector3(bx-W/2, 0, bz-D/2),
+    new THREE.Vector3(bx+W/2, H+3, bz+D/2)
+  );
+  shopBuildings.push({ box: shopBox, ...s });
+}
+
+// ── POINTER LOCK ──────────────────────────────────────────────
+function requestPointerLock() {
+  if(!currentUser) return;
+  const el = document.getElementById('gameCanvas');
+  if(el.requestPointerLock) el.requestPointerLock();
+}
+
+function onPointerLockChange() {
+  isPointerLocked = !!document.pointerLockElement;
+  document.getElementById('clickToPlay').style.display = isPointerLocked ? 'none' : (currentUser ? 'flex' : 'none');
+  document.getElementById('playerMenu').style.display = isPointerLocked ? 'block' : 'none';
+}
+
+function onMouseMove(e) {
+  if(!isPointerLocked) return;
+  const sens = 0.002;
+  euler.y -= e.movementX * sens;
+  euler.x -= e.movementY * sens;
+  euler.x = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, euler.x));
+  camera.quaternion.setFromEuler(euler);
+}
+
+function onKey(e) {
+  if(!isPointerLocked && !['Tab'].includes(e.key)) return;
+  if(e.key==='w'||e.key==='W'||e.key==='ArrowUp') moveForward=true;
+  if(e.key==='s'||e.key==='S'||e.key==='ArrowDown') moveBack=true;
+  if(e.key==='a'||e.key==='A'||e.key==='ArrowLeft') moveLeft=true;
+  if(e.key==='d'||e.key==='D'||e.key==='ArrowRight') moveRight=true;
+  if(e.key==='e'||e.key==='E') { if(interactTarget) openShopUI(interactTarget); }
+  if(e.key==='i'||e.key==='I') { openInvPanel(); }
+  if(e.key==='Tab') { e.preventDefault(); togglePlayerMenu(); }
+}
+function onKey2(e) {
+  if(e.key==='w'||e.key==='W'||e.key==='ArrowUp') moveForward=false;
+  if(e.key==='s'||e.key==='S'||e.key==='ArrowDown') moveBack=false;
+  if(e.key==='a'||e.key==='A'||e.key==='ArrowLeft') moveLeft=false;
+  if(e.key==='d'||e.key==='D'||e.key==='ArrowRight') moveRight=false;
+}
+
+// ── PLAYER MOVEMENT ──────────────────────────────────────────
+function updatePlayer(dt) {
+  if(!isPointerLocked) return;
+  const speed = 8;
+  const fwd = new THREE.Vector3(-Math.sin(euler.y), 0, -Math.cos(euler.y));
+  const right = new THREE.Vector3(Math.cos(euler.y), 0, -Math.sin(euler.y));
+  velocity.set(0,0,0);
+  if(moveForward) velocity.add(fwd.clone().multiplyScalar(speed*dt));
+  if(moveBack)    velocity.add(fwd.clone().multiplyScalar(-speed*dt));
+  if(moveLeft)    velocity.add(right.clone().multiplyScalar(-speed*dt));
+  if(moveRight)   velocity.add(right.clone().multiplyScalar(speed*dt));
+
+  // Clamp to world
+  const np = camera.position.clone().add(velocity);
+  np.x = Math.max(-27, Math.min(27, np.x));
+  np.z = Math.max(-27, Math.min(27, np.z));
+  np.y = 1.7;
+
+  // Collision with shop buildings
+  let blocked = false;
+  const playerBox = new THREE.Box3(
+    new THREE.Vector3(np.x-0.4, np.y-1.7, np.z-0.4),
+    new THREE.Vector3(np.x+0.4, np.y+0.3, np.z+0.4)
+  );
+  for(const sh of shopBuildings) {
+    if(sh.box.intersectsBox(playerBox)) { blocked=true; break; }
+  }
+  if(!blocked) camera.position.copy(np);
+
+  // Check interact range
+  interactTarget = null;
+  let closest = 5.5;
+  for(const sh of shopBuildings) {
+    const d = camera.position.distanceTo(new THREE.Vector3(...sh.pos.map((v,i)=>i===1?v+2:v)));
+    if(d < closest) { closest=d; interactTarget=sh; }
+  }
+  const hint = document.getElementById('hud-hint');
+  if(interactTarget) {
+    hint.textContent = `E = ${interactTarget.name} betreten · I = Inventar · Tab = Menü`;
+    hint.style.color = '#c9a84c';
+  } else {
+    hint.textContent = 'E = Shop betreten · I = Inventar · Tab = Menü · WASD = Laufen';
+    hint.style.color = 'rgba(255,255,255,0.7)';
+  }
+}
+
+// ── MINIMAP ───────────────────────────────────────────────────
+function drawMinimap() {
+  const mc = document.getElementById('minimapCanvas');
+  const mctx = mc.getContext('2d');
+  mctx.clearRect(0,0,100,100);
+  mctx.fillStyle='#143222';
+  mctx.fillRect(0,0,100,100);
+  // Path
+  mctx.fillStyle='#C8B97A';
+  mctx.fillRect(46,0,8,100);
+  mctx.fillRect(0,46,100,8);
+  // Shops
+  shopBuildings.forEach(s => {
+    const mx = (s.pos[0]+30)/60*100;
+    const mz = (s.pos[2]+30)/60*100;
+    mctx.fillStyle = '#c9a84c';
+    mctx.fillRect(mx-4,mz-4,8,8);
+  });
+  // Player
+  const px = (camera.position.x+30)/60*100;
+  const pz = (camera.position.z+30)/60*100;
+  mctx.fillStyle='#ffffff';
+  mctx.beginPath();
+  mctx.arc(px,pz,3,0,Math.PI*2);
+  mctx.fill();
+  // Direction arrow
+  const ax = px+Math.sin(-euler.y)*7;
+  const az = pz+Math.cos(-euler.y)*7;
+  mctx.strokeStyle='#ffffff';
+  mctx.lineWidth=1.5;
+  mctx.beginPath();mctx.moveTo(px,pz);mctx.lineTo(ax,az);mctx.stroke();
+}
+
+// ── ANIMATE ───────────────────────────────────────────────────
+let frameCount=0;
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  updatePlayer(dt);
+  renderer.render(scene, camera);
+  frameCount++;
+  if(frameCount%3===0) drawMinimap();
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════════
+function showToast(msg, dur=2500) {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.style.display='block';
+  clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none', dur);
+}
+function showNotif(msg) {
+  const b = document.getElementById('notifBar');
+  b.textContent=msg; b.classList.add('show');
+  clearTimeout(b._t); b._t=setTimeout(()=>b.classList.remove('show'), 3500);
+}
+function setStatus(id, msg, ok) {
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.textContent=msg; el.className='sp-status '+(ok?'status-ok':'status-err');
+}
+function togglePlayerMenu() {
+  playerMenuOpen=!playerMenuOpen;
+  document.getElementById('playerMenu').style.display = playerMenuOpen&&isPointerLocked?'block':'none';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════
 function switchAuthTab(t) {
-  document.getElementById('tab-register').style.display = t==='register' ? 'block' : 'none';
-  document.getElementById('tab-login').style.display    = t==='login'    ? 'block' : 'none';
-  document.getElementById('auth-tab-reg').classList.toggle('active',   t==='register');
-  document.getElementById('auth-tab-login').classList.toggle('active', t==='login');
+  document.getElementById('auth-reg').style.display   = t==='reg'?'block':'none';
+  document.getElementById('auth-login').style.display = t==='login'?'block':'none';
+  document.getElementById('aTab-reg').classList.toggle('active',t==='reg');
+  document.getElementById('aTab-login').classList.toggle('active',t==='login');
 }
 
 async function registerAccount() {
-  const name = document.getElementById('reg-name').value.trim();
-  const pass = document.getElementById('reg-pass').value.trim();
-  const geld = parseFloat(document.getElementById('reg-geld').value) || 0;
-  if (!name) return showStatus('reg-status','Name eingeben!', false);
-  if (!pass || pass.length < 3) return showStatus('reg-status','Passwort mind. 3 Zeichen!', false);
-  setBtnLoading('reg-btn', true, 'Konto erstellen');
-  const { error } = await db.from('accounts').insert({ name, password: pass, balance: geld, connections: [] });
-  setBtnLoading('reg-btn', false, 'Konto erstellen');
-  if (error) {
-    if (error.code === '23505') return showStatus('reg-status','Name bereits vergeben!', false);
-    return showStatus('reg-status','Fehler: ' + error.message, false);
+  const name=document.getElementById('reg-name').value.trim();
+  const pass=document.getElementById('reg-pass').value.trim();
+  const geld=parseFloat(document.getElementById('reg-geld').value)||0;
+  if(!name)return setStatus('reg-status','Name eingeben!',false);
+  if(!pass||pass.length<3)return setStatus('reg-status','Min. 3 Zeichen!',false);
+  document.getElementById('reg-btn').disabled=true;
+  const {error}=await db.from('accounts').insert({name,password:pass,balance:geld,connections:[]});
+  document.getElementById('reg-btn').disabled=false;
+  if(error){
+    setStatus('reg-status',error.code==='23505'?'Name vergeben!':'Fehler: '+error.message,false);
+    return;
   }
-  showStatus('reg-status','✅ Konto erstellt! Jetzt einloggen.', true);
-  document.getElementById('login-name').value = name;
-  setTimeout(() => switchAuthTab('login'), 1200);
+  setStatus('reg-status','✅ Erstellt! Jetzt einloggen.',true);
+  document.getElementById('login-name').value=name;
+  setTimeout(()=>switchAuthTab('login'),1000);
 }
 
 async function loginAccount() {
-  const name = document.getElementById('login-name').value.trim();
-  const pass = document.getElementById('login-pass').value.trim();
-  if (!name || !pass) return showStatus('login-status','Felder ausfüllen!', false);
-  setBtnLoading('login-btn', true, 'Einloggen');
-  const { data, error } = await db.from('accounts').select('*').eq('name', name).single();
-  setBtnLoading('login-btn', false, 'Einloggen');
-  if (error || !data) return showStatus('login-status','Konto nicht gefunden!', false);
-  if (data.password !== pass) return showStatus('login-status','Falsches Passwort!', false);
-  currentUser = data;
-  startRealtimeSubscriptions();
-  showDashboard();
+  const name=document.getElementById('login-name').value.trim();
+  const pass=document.getElementById('login-pass').value.trim();
+  if(!name||!pass)return setStatus('login-status','Felder ausfüllen!',false);
+  document.getElementById('login-btn').disabled=true;
+  const {data,error}=await db.from('accounts').select('*').eq('name',name).single();
+  document.getElementById('login-btn').disabled=false;
+  if(error||!data)return setStatus('login-status','Konto nicht gefunden!',false);
+  if(data.password!==pass)return setStatus('login-status','Falsches Passwort!',false);
+  currentUser=data;
+  document.getElementById('authUI').classList.remove('open');
+  document.getElementById('hud-balance').textContent='💰 '+fmt(currentUser.balance);
+  document.getElementById('sp-my-pass').textContent=currentUser.password;
+  startRealtime();
+  renderTransferSelect();
+  renderSpConnList();
+  document.getElementById('clickToPlay').style.display='flex';
+  showNotif('🎮 Willkommen, '+currentUser.name+'! Klicke zum Spielen.');
 }
 
 function logout() {
-  realtimeSubs.forEach(s => db.removeChannel(s));
-  realtimeSubs = []; currentUser = null;
-  // clear caches
-  cache.tx = null; cache.inv = null; cache.myProds = null; cache.marketProds = {};
-  document.getElementById('screen-dashboard').classList.remove('active');
-  document.getElementById('screen-login').classList.add('active');
-  showTab('verbinden');
+  realtimeSubs.forEach(s=>db.removeChannel(s));
+  realtimeSubs=[]; currentUser=null; cache={inv:null,invTs:0,myProds:null,myProdsTs:0,tx:null,txTs:0,marketProds:{}};
+  if(document.pointerLockElement) document.exitPointerLock();
+  document.getElementById('authUI').classList.add('open');
+  document.getElementById('clickToPlay').style.display='none';
+  document.getElementById('playerMenu').style.display='none';
 }
 
-// ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function showDashboard() {
-  document.getElementById('screen-login').classList.remove('active');
-  document.getElementById('screen-dashboard').classList.add('active');
-  renderDashboard();
-}
-
-function renderDashboard() {
-  if (!currentUser) return;
-  document.getElementById('dash-name').textContent     = currentUser.name;
-  document.getElementById('dash-balance').textContent  = fmt(currentUser.balance);
-  document.getElementById('device-badge').textContent  = currentUser.name.substring(0,10).toUpperCase();
-  document.getElementById('my-password-display').textContent = currentUser.password;
-  renderConnectedList();
-  renderTransferSelects();
-  renderMarketSellerList();
-}
-
-// ─── REALTIME ─────────────────────────────────────────────────────────────────
-function startRealtimeSubscriptions() {
-  realtimeSubs.forEach(s => db.removeChannel(s));
-  realtimeSubs = [];
-
-  // Account balance changes
-  const accSub = db.channel('account-' + currentUser.id)
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'accounts', filter: `id=eq.${currentUser.id}` }, payload => {
-      currentUser = { ...currentUser, ...payload.new };
-      updateBalanceDisplay(currentUser.balance);
-      document.getElementById('device-badge').textContent = currentUser.name.substring(0,10).toUpperCase();
+// ═══════════════════════════════════════════════════════════════
+// REALTIME
+// ═══════════════════════════════════════════════════════════════
+function startRealtime() {
+  const accSub = db.channel('acc-'+currentUser.id)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'accounts',filter:`id=eq.${currentUser.id}`}, p=>{
+      currentUser={...currentUser,...p.new};
+      document.getElementById('hud-balance').textContent='💰 '+fmt(currentUser.balance);
+      renderTransferSelect();
     }).subscribe();
   realtimeSubs.push(accSub);
 
-  // Incoming payment requests
-  const reqSub = db.channel('payment-req-' + currentUser.name)
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payment_requests', filter: `to_user=eq.${currentUser.name}` }, payload => {
-      if (payload.new.status === 'pending') showPaymentModal(payload.new);
+  const reqSub = db.channel('req-'+currentUser.name)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'payment_requests',filter:`to_user=eq.${currentUser.name}`}, p=>{
+      if(p.new.status==='pending') showPayModal(p.new);
     }).subscribe();
   realtimeSubs.push(reqSub);
 
-  // Transactions — invalidate cache, refresh if tab is visible
-  const txSub = db.channel('tx-' + currentUser.name)
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, payload => {
-      const t = payload.new;
-      if (t.from_user === currentUser.name || t.to_user === currentUser.name) {
-        cache.tx = null; // invalidate
-        const verlaufVisible = document.getElementById('tab-verlauf').style.display !== 'none';
-        if (verlaufVisible) renderTxList();
-      }
-    }).subscribe();
-  realtimeSubs.push(txSub);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden&&currentUser) checkPending(); });
 }
 
-async function refreshBalance() {
-  const { data } = await db.from('accounts').select('balance,connections').eq('id', currentUser.id).single();
-  if (data) {
-    currentUser.balance = data.balance;
-    currentUser.connections = data.connections;
-    updateBalanceDisplay(data.balance);
-    renderTransferSelects();
-    renderMarketSellerList();
-  }
+async function checkPending() {
+  const {data}=await db.from('payment_requests').select('*').eq('to_user',currentUser.name).eq('status','pending').order('created_at',{ascending:false}).limit(1);
+  if(data&&data.length) showPayModal(data[0]);
 }
 
-// ─── CONNECT ──────────────────────────────────────────────────────────────────
-async function connectToAccount() {
-  const pass = document.getElementById('connect-pass').value.trim();
-  if (!pass) return showStatus('connect-status','Passwort eingeben!', false);
-  if (pass === currentUser.password) return showStatus('connect-status','Das ist dein eigenes Passwort!', false);
-
-  const { data: other, error } = await db.from('accounts').select('*').eq('password', pass).single();
-  if (error || !other) return showStatus('connect-status','❌ Kein Konto gefunden!', false);
-  if ((currentUser.connections||[]).includes(other.name)) return showStatus('connect-status','Bereits verbunden mit ' + other.name + '!', false);
-
-  const myConns = [...(currentUser.connections||[]), other.name];
-  const otherConns = [...(other.connections||[])];
-  if (!otherConns.includes(currentUser.name)) otherConns.push(currentUser.name);
-
-  // Parallel update
-  await Promise.all([
-    db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id),
-    db.from('accounts').update({ connections: otherConns }).eq('id', other.id)
-  ]);
-
-  currentUser.connections = myConns;
-  showStatus('connect-status','✅ Verbunden mit ' + other.name + '!', true);
-  document.getElementById('connect-pass').value = '';
-  renderConnectedList();
-  renderTransferSelects();
-  renderMarketSellerList();
+// ═══════════════════════════════════════════════════════════════
+// SHOP UI
+// ═══════════════════════════════════════════════════════════════
+function openShopUI(shop) {
+  if(!currentUser) return;
+  document.exitPointerLock();
+  document.getElementById('shopUI').classList.add('open');
+  document.getElementById('shop-title').textContent = shop.emoji+' '+shop.name.toUpperCase();
+  document.getElementById('shop-subtitle').textContent = 'Verbundene Spieler durchsuchen';
+  shopCatFilter = shop.catFilter || 'alle';
+  shopSellerActive = null;
+  renderSellerList(shop.catFilter);
 }
 
-document.getElementById('my-password-display').addEventListener('click', function() {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(this.textContent).catch(()=>{});
-  }
-  showNotif('📋 Passwort kopiert!');
-});
-
-function renderConnectedList() {
-  const list = document.getElementById('connected-list');
-  const conns = currentUser.connections || [];
-  if (!conns.length) { list.innerHTML = '<p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p>'; return; }
-  list.innerHTML = conns.map(name => `
-    <div class="connected-device" style="border-color:rgba(26,156,88,0.4);background:rgba(26,156,88,0.08);">
-      <span><span class="dot dot-green"></span>${name}</span>
-      <button class="btn btn-red btn-sm" onclick="disconnectFrom('${name}')">Trennen</button>
-    </div>`).join('');
+function closeShop() {
+  document.getElementById('shopUI').classList.remove('open');
+  document.getElementById('shop-products-area').style.display='none';
+  document.getElementById('shop-no-seller').style.display='block';
+  shopSellerActive=null;
 }
 
-async function disconnectFrom(name) {
-  const myConns = (currentUser.connections||[]).filter(n => n !== name);
-  // Parallel: update self + fetch & update other
-  const [, otherRes] = await Promise.all([
-    db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id),
-    db.from('accounts').select('*').eq('name', name).single()
-  ]);
-  if (otherRes.data) {
-    const otherConns = (otherRes.data.connections||[]).filter(n => n !== currentUser.name);
-    await db.from('accounts').update({ connections: otherConns }).eq('id', otherRes.data.id);
-  }
-  currentUser.connections = myConns;
-  renderConnectedList();
-  renderTransferSelects();
-  renderMarketSellerList();
+function renderSellerList(catFilter) {
+  const conns = currentUser?.connections||[];
+  const div = document.getElementById('seller-list');
+  if(!conns.length){div.innerHTML='<p style="font-size:0.7rem;color:rgba(255,255,255,0.3);">Noch keine Verbindungen.</p>';return;}
+  div.innerHTML=conns.map(n=>`<div class="seller-chip" onclick="openSellerShop('${n}','${catFilter||'alle'}')"><span class="seller-dot"></span>${n}</div>`).join('');
 }
 
-function renderTransferSelects() {
-  const conns = currentUser.connections || [];
-  const opts = !conns.length
-    ? '<option value="">— Keine Verbindungen —</option>'
-    : '<option value="">— Konto wählen —</option>' + conns.map(n=>`<option value="${n}">${n}</option>`).join('');
-  document.getElementById('transfer-to').innerHTML    = opts;
-  document.getElementById('payment-req-to').innerHTML = opts;
-}
+async function openSellerShop(sellerName, catFilter) {
+  shopSellerActive=sellerName; shopCatFilter=catFilter||'alle';
+  document.querySelectorAll('.seller-chip').forEach(c=>c.classList.toggle('active',c.textContent.trim()===sellerName));
+  document.getElementById('shop-no-seller').style.display='none';
+  document.getElementById('shop-products-area').style.display='block';
+  document.getElementById('shop-prod-grid').innerHTML='<div style="grid-column:1/-1;color:rgba(255,255,255,0.3);font-size:0.75rem;padding:20px;text-align:center">⏳ Lade Produkte...</div>';
 
-// ─── TRANSFER (OPTIMISTIC) ────────────────────────────────────────────────────
-async function sendMoney() {
-  const toName = document.getElementById('transfer-to').value;
-  const amount = parseFloat(document.getElementById('transfer-amount').value);
-  const note   = document.getElementById('transfer-note').value.trim();
-  if (!toName) return showStatus('transfer-status','Empfänger wählen!', false);
-  if (!amount || amount <= 0) return showStatus('transfer-status','Betrag eingeben!', false);
-  if (amount > currentUser.balance) return showStatus('transfer-status','Nicht genug Guthaben!', false);
-
-  // Optimistic update
-  const prevBalance = currentUser.balance;
-  currentUser.balance = Math.round((currentUser.balance - amount) * 100) / 100;
-  updateBalanceDisplay(currentUser.balance);
-  setBtnLoading('send-money-btn', true, '💸 Jetzt senden');
-
-  try {
-    // Parallel: fresh balance + receiver account
-    const [selfRes, toRes] = await Promise.all([
-      db.from('accounts').select('balance').eq('id', currentUser.id).single(),
-      db.from('accounts').select('*').eq('name', toName).single()
-    ]);
-
-    if (!selfRes.data) throw new Error('Fehler beim Laden des Kontos!');
-    if (amount > selfRes.data.balance) throw new Error('Nicht genug Guthaben!');
-    if (!toRes.data) throw new Error('Empfänger nicht gefunden!');
-
-    // Parallel: deduct + credit + log
-    const [e1] = await Promise.all([
-      db.from('accounts').update({ balance: selfRes.data.balance - amount }).eq('id', currentUser.id),
-      db.from('accounts').update({ balance: toRes.data.balance + amount }).eq('id', toRes.data.id),
-      db.from('transactions').insert({ from_user: currentUser.name, to_user: toName, amount, note })
-    ]);
-    if (e1.error) throw new Error(e1.error.message);
-
-    // Confirm real balance
-    currentUser.balance = selfRes.data.balance - amount;
-    updateBalanceDisplay(currentUser.balance, false);
-
-    cache.tx = null; // invalidate tx cache
-    showStatus('transfer-status', `✅ ${fmt(amount)} an ${toName} gesendet!`, true);
-    showNotif(`💸 ${fmt(amount)} an ${toName} gesendet`);
-    document.getElementById('transfer-amount').value = '';
-    document.getElementById('transfer-note').value   = '';
-    // Refresh tx list if visible
-    if (document.getElementById('tab-verlauf').style.display !== 'none') renderTxList();
-
-  } catch (err) {
-    // Rollback optimistic
-    currentUser.balance = prevBalance;
-    updateBalanceDisplay(prevBalance, false);
-    showStatus('transfer-status','❌ ' + err.message, false);
-  } finally {
-    setBtnLoading('send-money-btn', false, '💸 Jetzt senden');
-  }
-}
-
-// ─── TRANSACTIONS (CACHED) ────────────────────────────────────────────────────
-async function renderTxList() {
-  const list = document.getElementById('tx-list');
-
-  // Show cached immediately, then refresh if stale
-  if (cache.tx && (now() - cache.txTs < cache.TTL_FAST)) {
-    list.innerHTML = cache.tx;
-    return;
-  }
-
-  // Show skeleton while loading
-  if (!cache.tx) list.innerHTML = '<div class="skeleton" style="height:40px;margin-bottom:6px;"></div>'.repeat(5);
-
-  const { data: txs } = await db.from('transactions')
-    .select('*').or(`from_user.eq.${currentUser.name},to_user.eq.${currentUser.name}`)
-    .order('created_at', { ascending: false }).limit(40);
-
-  if (!txs || !txs.length) {
-    cache.tx = '<p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p>';
-  } else {
-    cache.tx = txs.map(t => {
-      const out = t.from_user === currentUser.name;
-      const cls = out ? 'tx-minus' : 'tx-plus';
-      const who = out ? `→ ${t.to_user}` : `← ${t.from_user}`;
-      const ts  = new Date(t.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-      return `<div class="tx-item"><span>${who}${t.note?' · '+t.note:''}</span>
-        <span><span class="${cls}">${out?'-':'+'}${fmt(t.amount)}</span>
-        <span class="tx-time" style="margin-left:6px;">${ts}</span></span></div>`;
-    }).join('');
-  }
-  cache.txTs = now();
-  list.innerHTML = cache.tx;
-}
-
-// ─── MARKTPLATZ ───────────────────────────────────────────────────────────────
-function renderMarketSellerList() {
-  const conns = currentUser.connections || [];
-  const div = document.getElementById('seller-list-market');
-  if (!conns.length) { div.innerHTML = '<p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen. Verbinde dich zuerst mit anderen Konten.</p>'; return; }
-  div.innerHTML = conns.map(name => `
-    <div class="connected-device" style="cursor:pointer;" onclick="openMarketSeller('${name}')">
-      <span><span class="dot dot-green"></span><strong>${name}</strong></span>
-      <button class="btn btn-gold btn-sm">🛒 Shop öffnen</button>
-    </div>`).join('');
-}
-
-async function openMarketSeller(sellerName) {
-  marketSeller = sellerName;
-  document.getElementById('market-seller-title').textContent = 'Produkte von ' + sellerName;
-  document.getElementById('market-products-area').style.display = 'block';
-  document.getElementById('seller-list-market').style.display = 'none';
-  marketFilter = 'alle';
-  await loadMarketProducts(sellerName);
-}
-
-function closeMarketSeller() {
-  marketSeller = null;
-  document.getElementById('market-products-area').style.display = 'none';
-  document.getElementById('seller-list-market').style.display = 'block';
-}
-
-async function loadMarketProducts(sellerName, forceRefresh=false) {
-  const cached = cache.marketProds[sellerName];
-  const fresh = !forceRefresh && cached && (now() - cached.ts < cache.TTL_FAST);
-
+  const cached=cache.marketProds[sellerName];
   let products;
-  if (fresh) {
-    products = cached.items;
-  } else {
-    // Show skeleton
-    document.getElementById('market-product-grid').innerHTML =
-      '<div class="skeleton" style="height:200px;border-radius:10px;"></div>'.repeat(4);
-
-    const { data } = await db.from('products')
-      .select('*').eq('seller', sellerName).eq('active', true).order('created_at', { ascending: false });
-    products = data || [];
-    cache.marketProds[sellerName] = { items: products, ts: now() };
+  if(cached&&(Date.now()-cached.ts<TTL)){products=cached.items;}
+  else{
+    const {data}=await db.from('products').select('*').eq('seller',sellerName).eq('active',true).order('created_at',{ascending:false});
+    products=data||[];
+    cache.marketProds[sellerName]={items:products,ts:Date.now()};
   }
-
-  marketProductsCache = {};
-  products.forEach(p => { marketProductsCache[p.id] = p; });
-  renderMarketCatFilter(products);
-  renderMarketGrid(products);
+  shopProductsCache={};
+  products.forEach(p=>shopProductsCache[p.id]=p);
+  renderShopCats(products);
+  renderShopGrid(products);
 }
 
-function renderMarketCatFilter(products) {
-  const cats = [...new Set((products||[]).map(p=>p.category))].filter(Boolean);
-  const div = document.getElementById('market-cat-filter');
-  div.innerHTML = `<button class="cat-chip ${marketFilter==='alle'?'active':''}" onclick="setMarketFilter('alle',this)">Alle</button>` +
-    cats.map(c=>`<button class="cat-chip ${marketFilter===c?'active':''}" onclick="setMarketFilter('${c}',this)">${CAT_LABELS[c]||c}</button>`).join('');
+function renderShopCats(products) {
+  const cats=[...new Set((products||[]).map(p=>p.category))].filter(Boolean);
+  const div=document.getElementById('shop-cats');
+  div.innerHTML=`<button class="cat-pill ${shopCatFilter==='alle'?'active':''}" onclick="setShopCat('alle',this)">Alle</button>`+
+    cats.map(c=>`<button class="cat-pill ${shopCatFilter===c?'active':''}" onclick="setShopCat('${c}',this)">${CAT_EMOJI[c]||''} ${CAT_LABELS[c]||c}</button>`).join('');
 }
 
-function setMarketFilter(cat, el) {
-  marketFilter = cat;
-  document.querySelectorAll('#market-cat-filter .cat-chip').forEach(b=>b.classList.remove('active'));
+function setShopCat(cat, el) {
+  shopCatFilter=cat;
+  document.querySelectorAll('#shop-cats .cat-pill').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
-  // Filter client-side — no new DB call
-  const products = marketSeller && cache.marketProds[marketSeller] ? cache.marketProds[marketSeller].items : [];
-  renderMarketGrid(products);
+  const products=shopSellerActive&&cache.marketProds[shopSellerActive]?cache.marketProds[shopSellerActive].items:[];
+  renderShopGrid(products);
 }
 
-function renderMarketGrid(products) {
-  const grid = document.getElementById('market-product-grid');
-  let filtered = marketFilter === 'alle' ? products : products.filter(p => p.category === marketFilter);
-  if (!filtered.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🛒</div>Keine Produkte in dieser Kategorie.</div>'; return; }
-  grid.innerHTML = filtered.map(p => {
-    const imgHtml = p.image_data
-      ? `<img src="${p.image_data}" alt="${p.name}" />`
-      : `<span style="font-size:2.5rem;">${CAT_EMOJI[p.category]||'📦'}</span>`;
-    const outOfStock = p.stock <= 0;
-    return `<div class="product-card ${outOfStock?'out-of-stock':''}" data-product-id="${p.id}" onclick="handleProductClick(this)">
-      <div class="product-img">${imgHtml}</div>
-      <div class="product-cat-badge">${CAT_LABELS[p.category]||p.category}</div>
-      <div class="product-info">
-        <div class="product-name">${p.name}</div>
-        <div class="product-price">${fmt(p.price)}</div>
-        <div class="product-stock">Lager: ${p.stock} Stück</div>
+function renderShopGrid(products) {
+  const grid=document.getElementById('shop-prod-grid');
+  const filtered=shopCatFilter==='alle'?products:products.filter(p=>p.category===shopCatFilter);
+  if(!filtered.length){grid.innerHTML='<div style="grid-column:1/-1;color:rgba(255,255,255,0.3);font-size:0.75rem;padding:20px;text-align:center">🛒 Keine Produkte hier.</div>';return;}
+  grid.innerHTML=filtered.map(p=>{
+    const imgH=p.image_data?`<img src="${p.image_data}">`:`<span>${CAT_EMOJI[p.category]||'📦'}</span>`;
+    return`<div class="prod-card ${p.stock<=0?'oos':''}" onclick="openBuyModal('${p.id}')">
+      <div class="prod-img">${imgH}</div>
+      <div class="prod-info">
+        <div class="prod-name">${p.name}</div>
+        <div class="prod-price">${fmt(p.price)}</div>
+        <div class="prod-stock">Lager: ${p.stock}</div>
       </div>
     </div>`;
   }).join('');
 }
 
-function handleProductClick(el) {
-  const id = el.getAttribute('data-product-id');
-  const p = marketProductsCache[id];
-  if (!p || p.stock <= 0) return;
-  openBuyModal(p);
+// ═══════════════════════════════════════════════════════════════
+// BUY MODAL
+// ═══════════════════════════════════════════════════════════════
+function openBuyModal(productId) {
+  const p=shopProductsCache[productId];
+  if(!p||p.stock<=0)return;
+  currentBuyProduct=p; buyQty=1; buyInProgress=false;
+  const imgDiv=document.getElementById('buy-img-div');
+  imgDiv.innerHTML=p.image_data?`<img src="${p.image_data}">`:`<span>${CAT_EMOJI[p.category]||'📦'}</span>`;
+  document.getElementById('buy-name').textContent=p.name;
+  document.getElementById('buy-price-disp').textContent=fmt(p.price);
+  document.getElementById('buy-desc-disp').textContent=p.description||'';
+  document.getElementById('buy-stock-disp').textContent=p.stock;
+  document.getElementById('buy-qty-disp').textContent=1;
+  document.getElementById('buy-status').textContent='';
+  document.getElementById('buy-status').className='status-line';
+  document.getElementById('buy-confirm-btn').disabled=false;
+  document.getElementById('buy-confirm-btn').textContent='🛒 Kaufen';
+  document.getElementById('buyModal').classList.add('open');
 }
 
-// ─── BUY MODAL ────────────────────────────────────────────────────────────────
-function openBuyModal(product) {
-  currentBuyProduct = product;
-  buyQty = 1;
-  buyInProgress = false;
-  const p = currentBuyProduct;
-  const imgDiv = document.getElementById('buy-modal-img');
-  imgDiv.innerHTML = p.image_data ? `<img src="${p.image_data}" style="width:100%;height:100%;object-fit:cover;" />` : `<span>${CAT_EMOJI[p.category]||'📦'}</span>`;
-  document.getElementById('buy-modal-name').textContent   = p.name;
-  document.getElementById('buy-modal-seller').textContent = 'Verkäufer: ' + p.seller;
-  document.getElementById('buy-modal-desc').textContent   = p.description || '';
-  document.getElementById('buy-modal-price').textContent  = fmt(p.price);
-  document.getElementById('buy-modal-stock').textContent  = p.stock + ' Stück';
-  document.getElementById('buy-qty-display').textContent  = 1;
-  document.getElementById('buy-modal-status').className   = 'status-msg';
-  setBtnLoading('confirm-buy-btn', false, '🛒 Kaufen');
-  document.getElementById('buy-modal').classList.add('show');
+function changeBuyQty(d) {
+  if(!currentBuyProduct)return;
+  buyQty=Math.max(1,Math.min(currentBuyProduct.stock,buyQty+d));
+  document.getElementById('buy-qty-disp').textContent=buyQty;
 }
-
-function changeBuyQty(delta) {
-  if (!currentBuyProduct) return;
-  buyQty = Math.max(1, Math.min(currentBuyProduct.stock, buyQty + delta));
-  document.getElementById('buy-qty-display').textContent = buyQty;
-}
-
-function closeBuyModal() {
-  document.getElementById('buy-modal').classList.remove('show');
-  currentBuyProduct = null;
-  buyInProgress = false;
-}
+function closeBuyModal(){document.getElementById('buyModal').classList.remove('open');currentBuyProduct=null;buyInProgress=false;}
 
 async function confirmBuy() {
-  if (buyInProgress) return;
-  const p = currentBuyProduct;
-  if (!p) return;
-  const total = p.price * buyQty;
-  if (total > currentUser.balance) return showStatus('buy-modal-status','Nicht genug Guthaben!', false);
-  if (buyQty > p.stock) return showStatus('buy-modal-status','Nicht genug Lager!', false);
-  if (p.seller === currentUser.name) return showStatus('buy-modal-status','Du kannst nicht dein eigenes Produkt kaufen!', false);
+  if(buyInProgress||!currentBuyProduct)return;
+  const p=currentBuyProduct;
+  const total=p.price*buyQty;
+  if(total>currentUser.balance){setBuyStatus('Nicht genug Guthaben!',false);return;}
+  if(p.seller===currentUser.name){setBuyStatus('Eigenes Produkt!',false);return;}
+  buyInProgress=true;
+  document.getElementById('buy-confirm-btn').disabled=true;
+  document.getElementById('buy-confirm-btn').textContent='...';
 
-  buyInProgress = true;
-  setBtnLoading('confirm-buy-btn', true, '🛒 Kaufen');
+  try{
+    const [selfRes,prodRes]=await Promise.all([
+      db.from('accounts').select('balance').eq('id',currentUser.id).single(),
+      db.from('products').select('stock,active,seller').eq('id',p.id).single()
+    ]);
+    if(total>selfRes.data.balance)throw new Error('Nicht genug Guthaben!');
+    if(!prodRes.data.active)throw new Error('Produkt nicht verfügbar');
+    if(buyQty>prodRes.data.stock)throw new Error('Nicht genug Lager!');
 
-  try {
-    // Parallel: fresh self balance + fresh product info
-    const [selfRes, prodRes] = await Promise.all([
-      db.from('accounts').select('balance').eq('id', currentUser.id).single(),
-      db.from('products').select('stock,active,seller').eq('id', p.id).single()
+    await db.from('products').update({stock:prodRes.data.stock-buyQty}).eq('id',p.id);
+
+    const [,sellerRes]=await Promise.all([
+      db.from('accounts').update({balance:selfRes.data.balance-total}).eq('id',currentUser.id),
+      db.from('accounts').select('balance,id').eq('name',p.seller).single()
     ]);
 
-    if (!selfRes.data) throw new Error('Konto laden fehlgeschlagen');
-    if (total > selfRes.data.balance) throw new Error('Nicht genug Guthaben!');
-    if (!prodRes.data) throw new Error('Produkt nicht gefunden');
-    if (!prodRes.data.active) throw new Error('Produkt nicht mehr verfügbar');
-    if (buyQty > prodRes.data.stock) throw new Error('Nicht genug Lager!');
-
-    // Stock update
-    const { error: stockErr } = await db.from('products').update({ stock: prodRes.data.stock - buyQty }).eq('id', p.id);
-    if (stockErr) throw new Error('Lager-Fehler: ' + stockErr.message);
-
-    // Parallel: deduct buyer + fetch seller balance
-    const [buyerRes, sellerRes] = await Promise.all([
-      db.from('accounts').update({ balance: selfRes.data.balance - total }).eq('id', currentUser.id),
-      db.from('accounts').select('balance,id').eq('name', p.seller).single()
-    ]);
-    if (buyerRes.error) {
-      await db.from('products').update({ stock: prodRes.data.stock }).eq('id', p.id); // rollback
-      throw new Error('Zahlung fehlgeschlagen: ' + buyerRes.error.message);
-    }
-
-    // Parallel: credit seller + log tx + build inventory items
-    const maxUses = CAT_USES[p.category] || null;
-    const allInvItems = Array.from({length: buyQty}, () => {
-      const item = { owner: currentUser.name, name: p.name, category: p.category, active: true };
-      if (p.id)         item.product_id = p.id;
-      if (p.price)      item.price_paid = p.price;
-      if (p.image_data) item.image_data = p.image_data;
-      if (maxUses !== null) { item.uses_left = maxUses; item.max_uses = maxUses; }
-      return item;
+    const maxUses=CAT_USES[p.category]||null;
+    const invItems=Array.from({length:buyQty},()=>{
+      const it={owner:currentUser.name,name:p.name,category:p.category,active:true,product_id:p.id,price_paid:p.price};
+      if(p.image_data) it.image_data=p.image_data;
+      if(maxUses!==null){it.uses_left=maxUses;it.max_uses=maxUses;}
+      return it;
     });
 
-    const ops = [
-      db.from('transactions').insert({ from_user: currentUser.name, to_user: p.seller, amount: total, note: `Kauf: ${p.name} x${buyQty}` }),
-      db.from('inventory').insert(allInvItems)
+    const ops=[
+      db.from('transactions').insert({from_user:currentUser.name,to_user:p.seller,amount:total,note:`Kauf: ${p.name} x${buyQty}`}),
+      db.from('inventory').insert(invItems)
     ];
-    if (sellerRes.data) {
-      ops.push(db.from('accounts').update({ balance: sellerRes.data.balance + total }).eq('id', sellerRes.data.id));
-    }
-    const results = await Promise.all(ops);
-    const invResult = results[1];
-    if (invResult.error) {
-      showStatus('buy-modal-status', `⚠️ Kauf OK, Inventar-Fehler: ${invResult.error.message}`, false);
-    }
+    if(sellerRes.data) ops.push(db.from('accounts').update({balance:sellerRes.data.balance+total}).eq('id',sellerRes.data.id));
+    await Promise.all(ops);
 
-    // Update local state
-    currentUser.balance = selfRes.data.balance - total;
-    updateBalanceDisplay(currentUser.balance);
-
-    // Invalidate caches
-    cache.tx = null;
-    cache.inv = null;
-    if (cache.marketProds[p.seller]) cache.marketProds[p.seller].ts = 0;
+    currentUser.balance=selfRes.data.balance-total;
+    document.getElementById('hud-balance').textContent='💰 '+fmt(currentUser.balance);
+    cache.inv=null; if(cache.marketProds[p.seller]) cache.marketProds[p.seller].ts=0;
 
     closeBuyModal();
     showNotif(`🛒 ${p.name} x${buyQty} gekauft für ${fmt(total)}!`);
-    if (marketSeller) loadMarketProducts(marketSeller, true);
-    if (document.getElementById('tab-verlauf').style.display !== 'none') renderTxList();
-
-  } catch (err) {
-    showStatus('buy-modal-status', '❌ ' + err.message, false);
-    buyInProgress = false;
-    setBtnLoading('confirm-buy-btn', false, '🛒 Kaufen');
+    showToast(`+${buyQty}× ${p.name}`);
+    if(shopSellerActive) openSellerShop(shopSellerActive, shopCatFilter);
+  }catch(err){
+    setBuyStatus('❌ '+err.message,false);
+    buyInProgress=false;
+    document.getElementById('buy-confirm-btn').disabled=false;
+    document.getElementById('buy-confirm-btn').textContent='🛒 Kaufen';
   }
 }
+function setBuyStatus(msg,ok){const el=document.getElementById('buy-status');el.textContent=msg;el.className='status-line '+(ok?'status-ok':'status-err');}
 
-// ─── MEIN SHOP ────────────────────────────────────────────────────────────────
-function switchShopTab(t) {
-  ['produkte','upload','resell'].forEach(s => {
-    document.getElementById('shop-'+s).style.display = s===t ? 'block' : 'none';
-    document.getElementById('shop-tab-'+s).classList.toggle('active', s===t);
-  });
-  if (t==='produkte') loadMyProducts();
-  if (t==='resell') loadResellInventory();
+// ═══════════════════════════════════════════════════════════════
+// INVENTAR
+// ═══════════════════════════════════════════════════════════════
+async function openInvPanel() {
+  if(!currentUser)return;
+  if(isPointerLocked) document.exitPointerLock();
+  document.getElementById('invPanel').classList.add('open');
+  await renderInv();
 }
+function closeInvPanel(){document.getElementById('invPanel').classList.remove('open');}
 
-async function loadMyProducts(forceRefresh=false) {
-  const div = document.getElementById('my-products-list');
-  const stale = !cache.myProds || forceRefresh || (now() - cache.myProdsTs > cache.TTL_SLOW);
-
-  if (!stale && cache.myProds) {
-    renderMyProducts(cache.myProds);
-    return;
+async function renderInv() {
+  const stale=!cache.inv||(Date.now()-cache.invTs>TTL);
+  if(stale){
+    const {data}=await db.from('inventory').select('*').eq('owner',currentUser.name).eq('active',true).order('created_at',{ascending:false});
+    cache.inv=data||[]; cache.invTs=Date.now();
   }
-
-  div.innerHTML = '<div class="skeleton" style="height:64px;border-radius:8px;margin-bottom:8px;"></div>'.repeat(3);
-  const { data: prods } = await db.from('products').select('*').eq('seller', currentUser.name).eq('active', true).order('created_at', { ascending: false });
-  cache.myProds = prods || [];
-  cache.myProdsTs = now();
-  renderMyProducts(cache.myProds);
-}
-
-function renderMyProducts(prods) {
-  const div = document.getElementById('my-products-list');
-  if (!prods || !prods.length) { div.innerHTML = '<div class="empty-state"><div class="icon">📦</div>Noch keine Produkte hochgeladen.</div>'; return; }
-  div.innerHTML = prods.map(p => {
-    const imgHtml = p.image_data
-      ? `<div class="my-product-thumb"><img src="${p.image_data}" /></div>`
-      : `<div class="my-product-thumb">${CAT_EMOJI[p.category]||'📦'}</div>`;
-    return `<div class="my-product-row" id="prodrow-${p.id}">
-      ${imgHtml}
-      <div class="my-product-info">
-        <div class="my-product-name">${p.name}</div>
-        <div class="my-product-meta">${CAT_LABELS[p.category]||''} · Lager: ${p.stock}</div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-          <input class="price-edit-input" type="number" value="${fmtN(p.price)}" step="0.01" min="0"
-            onchange="updateProductPrice('${p.id}', this.value)" />
-          <span style="font-size:0.7rem;color:rgba(245,230,200,0.4);">€</span>
-        </div>
-      </div>
-      <div class="my-product-actions">
-        <button class="btn btn-outline btn-sm" onclick="addStock('${p.id}', ${p.stock})">+Lager</button>
-        <button class="btn btn-red btn-sm" onclick="deleteProduct('${p.id}')">🗑️</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function updateProductPrice(id, newPrice) {
-  const price = parseFloat(newPrice);
-  if (!price || price <= 0) return;
-  await db.from('products').update({ price }).eq('id', id);
-  // Update cache
-  if (cache.myProds) cache.myProds = cache.myProds.map(p => p.id === id ? {...p, price} : p);
-  showNotif('✅ Preis aktualisiert!');
-}
-
-async function addStock(id, current) {
-  const add = parseInt(prompt('Wie viele Stück hinzufügen?', '1'));
-  if (!add || add <= 0) return;
-  await db.from('products').update({ stock: current + add }).eq('id', id);
-  cache.myProds = null; // invalidate
-  loadMyProducts(true);
-}
-
-async function deleteProduct(id) {
-  const row = document.getElementById('prodrow-' + id);
-  if (row) row.style.opacity = '0.3';
-  // Optimistic: remove from cache
-  if (cache.myProds) cache.myProds = cache.myProds.filter(p => p.id !== id);
-
-  const { error } = await db.from('products').delete().eq('id', id).eq('seller', currentUser.name);
-  if (error) {
-    const { error: e2 } = await db.from('products').update({ active: false }).eq('id', id);
-    if (e2) { showNotif('❌ Löschen fehlgeschlagen: ' + e2.message); cache.myProds = null; loadMyProducts(true); return; }
-  }
-  showNotif('🗑️ Produkt gelöscht!');
-  renderMyProducts(cache.myProds || []);
-}
-
-// ─── IMAGE UPLOAD ─────────────────────────────────────────────────────────────
-function compressImage(file, maxWidth, quality) {
-  return new Promise((resolve) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const canvas = document.createElement('canvas');
-      let w = img.naturalWidth || img.width;
-      let h = img.naturalHeight || img.height;
-      if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
-      if (w < 1 || h < 1) { resolve(null); return; }
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      try { resolve(canvas.toDataURL('image/jpeg', quality)); }
-      catch(e) { resolve(null); }
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
-    img.src = url;
-  });
-}
-
-async function handleImgUpload(e) {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-  const area = document.getElementById('upload-img-area');
-  area.innerHTML = '<span style="font-size:1.2rem;">⏳</span><span>Bild wird verarbeitet...</span>';
-  area.classList.remove('has-img');
-  if (!file.type.startsWith('image/')) {
-    area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Nur Bilder erlaubt!</span>';
-    return;
-  }
-  let data = await compressImage(file, 600, 0.72);
-  if (!data) {
-    area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Fehler. Anderes Bild versuchen.</span>';
-    e.target.value = '';
-    return;
-  }
-  const kb = Math.round(data.length * 0.75 / 1024);
-  if (kb > 700) {
-    data = await compressImage(file, 400, 0.5);
-    if (!data) { area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span style="color:#ff8080;">Bild zu groß!</span>'; return; }
-  }
-  const kb2 = Math.round(data.length * 0.75 / 1024);
-  document.getElementById('upload-img-data').value = data;
-  area.innerHTML = `<img src="${data}" /><div style="font-size:0.65rem;color:rgba(245,230,200,0.4);margin-top:4px;">${kb2} KB</div>`;
-  area.classList.add('has-img');
-}
-
-async function uploadProduct() {
-  const name     = document.getElementById('upload-name').value.trim();
-  const category = document.getElementById('upload-category').value;
-  const price    = parseFloat(document.getElementById('upload-price').value);
-  const stock    = parseInt(document.getElementById('upload-stock').value) || 1;
-  const desc     = document.getElementById('upload-desc').value.trim();
-  const imgData  = document.getElementById('upload-img-data').value;
-  if (!name)     return showStatus('upload-status','Name eingeben!', false);
-  if (!category) return showStatus('upload-status','Kategorie wählen!', false);
-  if (!price || price <= 0) return showStatus('upload-status','Preis eingeben!', false);
-  if (imgData && imgData.length > 700000) return showStatus('upload-status','❌ Bild zu groß!', false);
-
-  setBtnLoading('upload-btn', true, '📤 Produkt hochladen');
-  showStatus('upload-status','⏳ Wird hochgeladen...', true);
-
-  const { error } = await db.from('products').insert({
-    seller: currentUser.name, name, category, price, stock,
-    description: desc, image_data: imgData || null, active: true
-  });
-  setBtnLoading('upload-btn', false, '📤 Produkt hochladen');
-  if (error) return showStatus('upload-status','❌ Fehler: ' + error.message, false);
-
-  showStatus('upload-status','✅ Produkt hochgeladen!', true);
-  showNotif('📤 ' + name + ' in deinen Shop eingestellt!');
-
-  // Reset form
-  ['upload-name','upload-category','upload-price','upload-desc','upload-img-data','upload-img-input'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  document.getElementById('upload-stock').value = '1';
-  const area = document.getElementById('upload-img-area');
-  area.innerHTML = '<span style="font-size:1.8rem;">📷</span><span>Bild auswählen oder hier tippen</span>';
-  area.classList.remove('has-img');
-
-  cache.myProds = null; // invalidate
-  setTimeout(() => switchShopTab('produkte'), 1200);
-}
-
-// ─── RESELL ───────────────────────────────────────────────────────────────────
-// resellState[gi] = { qty: number, price: number }
-const resellState = {};
-
-async function loadResellInventory() {
-  const div = document.getElementById('resell-inv-list');
-  let items = cache.inv;
-  if (!items || now() - cache.invTs > cache.TTL_SLOW) {
-    div.innerHTML = '<div class="skeleton" style="height:64px;border-radius:8px;margin-bottom:8px;"></div>'.repeat(3);
-    const { data } = await db.from('inventory').select('*').eq('owner', currentUser.name).eq('active', true).order('created_at', { ascending: false });
-    items = data || [];
-    cache.inv = items; cache.invTs = now();
-  }
-  if (!items.length) {
-    div.innerHTML = '<div class="empty-state"><div class="icon">🎒</div>Kein Inventar zum Weiterverkaufen.</div>';
-    return;
-  }
-
-  const groups = groupInvItems(items);
-
-  // Init state for each group (preserve existing price if re-rendering)
-  groups.forEach((g, gi) => {
-    if (!resellState[gi]) resellState[gi] = { qty: 0, price: null };
-    // clamp qty to available
-    resellState[gi].qty = Math.min(resellState[gi].qty, g.count);
-  });
-
-  div.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <span style="font-size:0.72rem;color:rgba(245,230,200,0.5);">${groups.length} Artikel-Gruppe${groups.length!==1?'n':''}</span>
-      <button class="btn btn-outline btn-sm" onclick="toggleAllResell(${groups.length})">Alle auswählen</button>
-    </div>
-    <div id="resell-groups">
-      ${groups.map((g, gi) => renderResellGroupRow(g, gi)).join('')}
-    </div>
-    <div id="resell-submit-area" style="display:none;margin-top:14px;border-top:1px solid rgba(201,168,76,0.15);padding-top:14px;">
-      <div id="resell-summary" style="font-size:0.75rem;color:rgba(245,230,200,0.5);margin-bottom:10px;line-height:1.6;"></div>
-      <button class="btn btn-blue btn-full" onclick="resellSelected()">↩️ Ausgewählte in Shop einstellen</button>
-    </div>`;
-
-  updateResellSubmitBtn(groups);
-}
-
-function renderResellGroupRow(g, gi) {
-  const item = g.representative;
-  const state = resellState[gi] || { qty: 0, price: null };
-  const idsAttr = encodeURIComponent(JSON.stringify(g.ids));
-  const imgHtml = item.image_data
-    ? `<div class="my-product-thumb"><img src="${item.image_data}" /></div>`
-    : `<div class="my-product-thumb">${CAT_EMOJI[item.category]||'📦'}</div>`;
-  const isSelected = state.qty > 0;
-  const displayPrice = state.price !== null ? state.price : (item.price_paid || '');
-
-  return `<div class="my-product-row" id="resell-group-${gi}"
-      style="align-items:flex-start;gap:8px;border-color:${isSelected?'rgba(26,110,156,0.5)':'rgba(201,168,76,0.12)'};background:${isSelected?'rgba(26,110,156,0.08)':'rgba(0,0,0,0.2)'};transition:all 0.2s;">
-    ${imgHtml}
-    <div class="my-product-info" style="flex:1;min-width:0;">
-      <div class="my-product-name" style="margin-bottom:4px;">${item.name}${g.count>1?`<span class="resell-badge">×${g.count} vorhanden</span>`:''}</div>
-      <div class="my-product-meta" style="margin-bottom:8px;">${CAT_LABELS[item.category]||''}</div>
-
-      <!-- Menge -->
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
-        <span style="font-size:0.68rem;color:rgba(245,230,200,0.4);width:52px;">MENGE</span>
-        <button onclick="changeResellQty(${gi}, -1, ${g.count})"
-          style="background:rgba(255,255,255,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:4px;color:var(--cream);width:26px;height:26px;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;">−</button>
-        <span id="resell-qty-${gi}" style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--gold);min-width:22px;text-align:center;">${state.qty}</span>
-        <button onclick="changeResellQty(${gi}, 1, ${g.count})"
-          style="background:rgba(255,255,255,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:4px;color:var(--cream);width:26px;height:26px;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;">+</button>
-        ${g.count>1?`<span style="font-size:0.65rem;color:rgba(245,230,200,0.3);">von ${g.count}</span>`:''}
-      </div>
-
-      <!-- Preis — immer sichtbar, inline editierbar -->
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="font-size:0.68rem;color:rgba(245,230,200,0.4);width:52px;">PREIS</span>
-        <div style="position:relative;display:flex;align-items:center;">
-          <input type="number" id="resell-price-${gi}"
-            value="${displayPrice}"
-            placeholder="0.00"
-            step="0.01" min="0"
-            style="width:80px;background:rgba(0,0,0,0.5);border:1px solid var(--gold-dark);border-radius:4px;
-                   color:var(--gold);padding:4px 22px 4px 8px;font-size:0.85rem;font-family:'DM Mono',monospace;
-                   text-align:right;outline:none;margin:0;"
-            onfocus="this.style.borderColor='var(--gold)'"
-            onblur="this.style.borderColor='var(--gold-dark)';saveResellPrice(${gi},this.value)"
-            oninput="saveResellPrice(${gi},this.value)" />
-          <span style="position:absolute;right:6px;font-size:0.7rem;color:rgba(245,230,200,0.4);pointer-events:none;">€</span>
-        </div>
-        <span style="font-size:0.65rem;color:rgba(245,230,200,0.3);">je Stück</span>
-      </div>
-    </div>
-  </div>`;
-}
-
-function changeResellQty(gi, delta, maxCount) {
-  if (!resellState[gi]) resellState[gi] = { qty: 0, price: null };
-  const newQty = Math.max(0, Math.min(maxCount, resellState[gi].qty + delta));
-  resellState[gi].qty = newQty;
-
-  // Update qty display
-  const qtyEl = document.getElementById('resell-qty-' + gi);
-  if (qtyEl) qtyEl.textContent = newQty;
-
-  // Update row highlight
-  const row = document.getElementById('resell-group-' + gi);
-  if (row) {
-    row.style.borderColor = newQty > 0 ? 'rgba(26,110,156,0.5)' : 'rgba(201,168,76,0.12)';
-    row.style.background  = newQty > 0 ? 'rgba(26,110,156,0.08)' : 'rgba(0,0,0,0.2)';
-  }
-
-  // Rebuild submit area without full re-render
-  const groups = groupInvItems(cache.inv || []);
-  updateResellSubmitBtn(groups);
-}
-
-function saveResellPrice(gi, val) {
-  if (!resellState[gi]) resellState[gi] = { qty: 0, price: null };
-  const p = parseFloat(val);
-  resellState[gi].price = (!isNaN(p) && p > 0) ? p : null;
-  updateResellSubmitBtn(groupInvItems(cache.inv || []));
-}
-
-let resellAllToggle = false;
-function toggleAllResell(groupCount) {
-  resellAllToggle = !resellAllToggle;
-  const groups = groupInvItems(cache.inv || []);
-  groups.forEach((g, gi) => {
-    if (!resellState[gi]) resellState[gi] = { qty: 0, price: null };
-    resellState[gi].qty = resellAllToggle ? g.count : 0;
-    const qtyEl = document.getElementById('resell-qty-' + gi);
-    if (qtyEl) qtyEl.textContent = resellState[gi].qty;
-    const row = document.getElementById('resell-group-' + gi);
-    if (row) {
-      row.style.borderColor = resellAllToggle ? 'rgba(26,110,156,0.5)' : 'rgba(201,168,76,0.12)';
-      row.style.background  = resellAllToggle ? 'rgba(26,110,156,0.08)' : 'rgba(0,0,0,0.2)';
-    }
-  });
-  updateResellSubmitBtn(groups);
-}
-
-function updateResellSubmitBtn(groups) {
-  const area = document.getElementById('resell-submit-area');
-  const summary = document.getElementById('resell-summary');
-  if (!area || !groups) return;
-
-  const selected = groups.filter((g, gi) => resellState[gi] && resellState[gi].qty > 0);
-  if (!selected.length) { area.style.display = 'none'; return; }
-
-  area.style.display = 'block';
-  const lines = selected.map((g, _) => {
-    const gi = groups.indexOf(g);
-    const state = resellState[gi];
-    const priceStr = state.price ? fmt(state.price) : '⚠️ kein Preis';
-    return `${g.representative.name} × ${state.qty} · ${priceStr}`;
-  });
-  summary.innerHTML = lines.join('<br>');
-}
-
-async function resellSelected() {
-  const groups = groupInvItems(cache.inv || []);
-  const toSell = groups.map((g, gi) => ({ g, gi, state: resellState[gi] || { qty: 0, price: null } }))
-    .filter(x => x.state.qty > 0);
-
-  if (!toSell.length) return showNotif('❌ Menge bei mindestens einem Artikel auf >0 setzen!');
-
-  for (const { g, state } of toSell) {
-    if (!state.price || state.price <= 0)
-      return showNotif(`❌ Preis für "${g.representative.name}" fehlt oder ungültig!`);
-  }
-
-  const productInserts = [];
-  const invIdsToDeactivate = [];
-
-  for (const { g, state } of toSell) {
-    const item = g.representative;
-    // Take only the first `state.qty` ids from the group
-    const selectedIds = g.ids.slice(0, state.qty);
-    productInserts.push({
-      seller: currentUser.name,
-      name: item.name,
-      category: item.category,
-      price: state.price,
-      stock: state.qty,
-      image_data: item.image_data || null,
-      active: true,
-      description: `Weiterverkauf${state.qty > 1 ? ` (${state.qty}× gebraucht)` : ' (gebraucht)'}`
-    });
-    selectedIds.forEach(id => invIdsToDeactivate.push(id));
-  }
-
-  await Promise.all([
-    db.from('products').insert(productInserts),
-    db.from('inventory').update({ active: false }).in('id', invIdsToDeactivate)
-  ]);
-
-  // Update cache — remove only deactivated items
-  if (cache.inv) cache.inv = cache.inv.filter(i => !invIdsToDeactivate.includes(i.id));
-  cache.myProds = null;
-
-  // Reset qty in state for sold items
-  toSell.forEach(({ gi }) => { if (resellState[gi]) resellState[gi].qty = 0; });
-
-  const totalItems = toSell.length;
-  const totalStück = invIdsToDeactivate.length;
-  showNotif(`✅ ${totalItems} Produkt${totalItems!==1?'e':''} (${totalStück} Stück) in Shop eingestellt!`);
-  loadResellInventory();
-}
-
-function resellFromModal() {
-  if (!currentUseItem) return;
-  closeUseModal();
-  showTab('meinshop');
-  setTimeout(() => switchShopTab('resell'), 50);
-}
-
-// ─── INVENTAR (CACHED) ────────────────────────────────────────────────────────
-async function renderInventar(forceRefresh=false) {
-  const grid = document.getElementById('inv-grid');
-  const stale = !cache.inv || forceRefresh || (now() - cache.invTs > cache.TTL_SLOW);
-
-  // Show cached immediately
-  if (!stale && cache.inv) {
-    renderInvGrid(cache.inv);
-    return;
-  }
-
-  grid.innerHTML = '<div class="skeleton" style="height:180px;border-radius:8px;"></div>'.repeat(4);
-  const { data: items } = await db.from('inventory')
-    .select('*').eq('owner', currentUser.name).eq('active', true).order('created_at', { ascending: false });
-  cache.inv = items || [];
-  cache.invTs = now();
   renderInvGrid(cache.inv);
 }
 
-function groupInvItems(items) {
-  // Group by product_id if present, else by name+category
-  const groups = new Map();
-  for (const item of items) {
-    const key = item.product_id ? 'pid_' + item.product_id : 'name_' + item.name + '_' + item.category;
-    if (!groups.has(key)) {
-      groups.set(key, { representative: item, ids: [], category: item.category, count: 0 });
-    }
-    const g = groups.get(key);
-    g.ids.push(item.id);
-    g.count++;
-  }
-  return [...groups.values()];
+function filterInv(cat) {
+  invFilter=cat;
+  document.querySelectorAll('#inv-cat-row .cat-pill').forEach(b=>b.classList.toggle('active',b.textContent.includes(CAT_LABELS[cat])||cat==='alle'&&b.textContent==='Alle'));
+  if(cache.inv) renderInvGrid(cache.inv);
+  else renderInv();
 }
 
 function renderInvGrid(allItems) {
-  const grid = document.getElementById('inv-grid');
-  const filtered = invFilter === 'alle' ? allItems : allItems.filter(i => i.category === invFilter);
-
-  document.querySelectorAll('#inv-cat-filter .cat-chip').forEach(b => {
-    const fn = b.getAttribute('onclick') || '';
-    b.classList.toggle('active', fn.includes(`'${invFilter}'`));
-  });
-
-  if (!filtered.length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🎒</div>Noch nichts in dieser Kategorie.</div>';
-    return;
+  const grid=document.getElementById('inv-grid-mc');
+  const filtered=invFilter==='alle'?allItems:allItems.filter(i=>i.category===invFilter);
+  if(!filtered.length){grid.innerHTML='<div class="empty-inv">🎒 Noch nichts hier.</div>';return;}
+  // Group by product_id
+  const groups=new Map();
+  for(const item of filtered){
+    const key=item.product_id?'p'+item.product_id:'n'+item.name+'_'+item.category;
+    if(!groups.has(key)) groups.set(key,{rep:item,ids:[],count:0});
+    const g=groups.get(key); g.ids.push(item.id); g.count++;
   }
-
-  const groups = groupInvItems(filtered);
-
-  grid.innerHTML = groups.map(g => {
-    const item = g.representative;
-    const imgHtml = item.image_data
-      ? `<div class="inv-img"><img src="${item.image_data}" /></div>`
-      : `<div class="inv-img">${CAT_EMOJI[item.category]||'📦'}</div>`;
-    const qtyBadge = g.count > 1
-      ? `<div style="position:absolute;top:6px;left:6px;background:rgba(201,168,76,0.9);color:#0e2018;border-radius:12px;padding:2px 8px;font-size:0.7rem;font-weight:700;">×${g.count}</div>`
-      : '';
-    let actionBtn = '', usesInfo = '';
-    if (item.category === 'essen') {
-      actionBtn = `<button class="inv-action" style="background:linear-gradient(135deg,#0d5c34,#1a9c58);color:white;" onclick="openUseModal('${item.id}')">🍽️ Essen</button>`;
-      usesInfo = `<div style="font-size:0.65rem;color:rgba(245,230,200,0.4);">je 1× verwendbar</div>`;
-    } else if (item.category === 'kleidung') {
-      const uses = item.uses_left !== null ? item.uses_left : 10;
-      const useDots = Array(10).fill(0).map((_,i) => `<span class="use-dot ${i >= uses ? 'used' : ''}"></span>`).join('');
-      actionBtn = `<button class="inv-action" style="background:linear-gradient(135deg,#3d1a6e,#7c3aed);color:white;" onclick="openUseModal('${item.id}')">👕 Anziehen</button>`;
-      usesInfo = `<div class="uses-bar" style="margin:3px 0;">${useDots}</div><div style="font-size:0.65rem;color:rgba(245,230,200,0.4);">${uses}× übrig</div>`;
-    } else {
-      actionBtn = `<button class="inv-action" style="background:rgba(201,168,76,0.15);color:var(--gold);border:1px solid var(--gold-dark);" onclick="openUseModal('${item.id}')">👁️ Ansehen</button>`;
-    }
-    return `<div class="inv-card" style="position:relative;">${imgHtml}${qtyBadge}<div class="inv-info">
-      <div class="inv-name">${item.name}</div>
-      <div class="inv-meta">${CAT_LABELS[item.category]||''}${g.count > 1 ? ' · <strong style="color:var(--gold);">'+g.count+' Stück</strong>' : ''}</div>
-      ${usesInfo}${actionBtn}
-    </div></div>`;
+  grid.innerHTML=[...groups.values()].map(g=>{
+    const item=g.rep;
+    const imgH=item.image_data?`<div class="inv-slot-img"><img src="${item.image_data}"></div>`:`<div class="inv-slot-img">${CAT_EMOJI[item.category]||'📦'}</div>`;
+    const usesStr=item.uses_left!==null&&item.uses_left!==undefined?` · ${item.uses_left}× übrig`:'';
+    return`<div class="inv-slot" onclick="openUsePopup('${item.id}')">
+      ${imgH}
+      <div class="inv-slot-name">${item.name}${g.count>1?` ×${g.count}`:''}</div>
+      <div class="inv-slot-meta">${CAT_LABELS[item.category]||''}${usesStr}</div>
+    </div>`;
   }).join('');
 }
 
-function filterInv(cat) {
-  invFilter = cat;
-  // Client-side filter — no DB call needed
-  if (cache.inv) { renderInvGrid(cache.inv); }
-  else renderInventar();
+// ═══════════════════════════════════════════════════════════════
+// USE ITEM
+// ═══════════════════════════════════════════════════════════════
+async function openUsePopup(invId) {
+  let item=(cache.inv||[]).find(i=>i.id===invId);
+  if(!item){const {data}=await db.from('inventory').select('*').eq('id',invId).single();item=data;}
+  if(!item)return;
+  currentUseItem=item;
+  const imgDiv=document.getElementById('use-img-div');
+  imgDiv.innerHTML=item.image_data?`<img src="${item.image_data}">`:`<span>${CAT_EMOJI[item.category]||'📦'}</span>`;
+  document.getElementById('use-name').textContent=item.name;
+  const usesLeft=item.uses_left!==null&&item.uses_left!==undefined?item.uses_left:null;
+  document.getElementById('use-meta').textContent=(CAT_LABELS[item.category]||'')+(usesLeft!==null?` · ${usesLeft} Nutzungen übrig`:'');
+  const dots=document.getElementById('use-dots');
+  if(item.category==='kleidung'&&item.max_uses){
+    const u=usesLeft||0;
+    dots.innerHTML=Array(item.max_uses).fill(0).map((_,i)=>`<span class="ud ${i>=u?'used':''}"></span>`).join('');
+    dots.style.display='flex';
+  } else {dots.innerHTML='';dots.style.display='none';}
+  const btn=document.getElementById('use-main-btn');
+  btn.textContent=item.category==='essen'?'🍽️ Essen':item.category==='kleidung'?'👕 Anziehen':'✅ Benutzen';
+  document.getElementById('use-status').textContent='';
+  document.getElementById('usePopup').classList.add('open');
 }
-
-// ─── USE ITEM MODAL ───────────────────────────────────────────────────────────
-async function openUseModal(invId) {
-  // Try cache first
-  let item = (cache.inv || []).find(i => i.id === invId);
-  if (!item) {
-    const { data } = await db.from('inventory').select('*').eq('id', invId).single();
-    item = data;
-  }
-  if (!item) return;
-  currentUseItem = item;
-  const imgDiv = document.getElementById('use-modal-img');
-  imgDiv.innerHTML = item.image_data ? `<img src="${item.image_data}" style="width:100%;height:100%;object-fit:cover;" />` : `<span>${CAT_EMOJI[item.category]||'📦'}</span>`;
-  document.getElementById('use-modal-name').textContent = item.name;
-  const usesLeft = item.uses_left !== null ? ` · ${item.uses_left} Nutzungen übrig` : '';
-  document.getElementById('use-modal-meta').textContent = (CAT_LABELS[item.category]||'') + usesLeft;
-  const usesBar = document.getElementById('use-modal-uses');
-  if (item.category === 'kleidung' && item.max_uses) {
-    const uses = item.uses_left || 0;
-    usesBar.innerHTML = Array(item.max_uses||10).fill(0).map((_,i) => `<span class="use-dot ${i >= uses ? 'used' : ''}"></span>`).join('');
-    usesBar.style.display = 'flex';
-  } else { usesBar.style.display = 'none'; }
-  const btn = document.getElementById('use-modal-btn');
-  if (item.category === 'essen') btn.textContent = '🍽️ Essen';
-  else if (item.category === 'kleidung') btn.textContent = '👕 Anziehen';
-  else btn.textContent = '✅ Benutzen';
-  document.getElementById('use-modal').classList.add('show');
-}
-
-function closeUseModal() {
-  document.getElementById('use-modal').classList.remove('show');
-  currentUseItem = null;
-}
+function closeUsePopup(){document.getElementById('usePopup').classList.remove('open');currentUseItem=null;}
 
 async function useItem() {
-  if (!currentUseItem) return;
-  const item = currentUseItem;
-  if (item.category === 'essen') {
-    // Optimistic: remove from cache immediately
-    if (cache.inv) cache.inv = cache.inv.filter(i => i.id !== item.id);
-    closeUseModal();
+  if(!currentUseItem)return;
+  const item=currentUseItem;
+  if(item.category==='essen'){
+    if(cache.inv) cache.inv=cache.inv.filter(i=>i.id!==item.id);
+    closeUsePopup(); closeInvPanel();
     showNotif(`🍽️ Lecker! ${item.name} gegessen!`);
-    renderInvGrid(cache.inv || []);
-    // DB in background
-    db.from('inventory').delete().eq('id', item.id).eq('owner', currentUser.name)
-      .then(({error}) => { if (error) db.from('inventory').update({ active: false }).eq('id', item.id); });
-  } else if (item.category === 'kleidung') {
-    const usesLeft = (item.uses_left !== null ? item.uses_left : 10) - 1;
-    // Optimistic cache update
-    if (cache.inv) cache.inv = cache.inv.map(i => i.id === item.id ? {...i, uses_left: usesLeft} : i);
-    if (usesLeft <= 0) {
-      if (cache.inv) cache.inv = cache.inv.filter(i => i.id !== item.id);
-      closeUseModal();
+    showToast('🍽️ Gegessen!');
+    if(cache.inv) renderInvGrid(cache.inv);
+    db.from('inventory').delete().eq('id',item.id).eq('owner',currentUser.name)
+      .then(({error})=>{if(error) db.from('inventory').update({active:false}).eq('id',item.id);});
+  } else if(item.category==='kleidung'){
+    const usesLeft=(item.uses_left!==null?item.uses_left:10)-1;
+    if(cache.inv) cache.inv=cache.inv.map(i=>i.id===item.id?{...i,uses_left:usesLeft}:i);
+    if(usesLeft<=0){
+      if(cache.inv) cache.inv=cache.inv.filter(i=>i.id!==item.id);
+      closeUsePopup();
       showNotif(`👕 ${item.name} ist verschlissen!`);
-      db.from('inventory').delete().eq('id', item.id).eq('owner', currentUser.name)
-        .then(({error}) => { if (error) db.from('inventory').update({ uses_left: 0, active: false }).eq('id', item.id); });
+      db.from('inventory').delete().eq('id',item.id);
     } else {
-      currentUseItem = {...item, uses_left: usesLeft};
-      const usesBar = document.getElementById('use-modal-uses');
-      usesBar.innerHTML = Array(item.max_uses||10).fill(0).map((_,i) => `<span class="use-dot ${i >= usesLeft ? 'used' : ''}"></span>`).join('');
-      document.getElementById('use-modal-meta').textContent = (CAT_LABELS[item.category]||'') + ` · ${usesLeft} Nutzungen übrig`;
-      showNotif(`👕 ${item.name} angezogen! Noch ${usesLeft}× möglich.`);
-      db.from('inventory').update({ uses_left: usesLeft }).eq('id', item.id);
+      currentUseItem={...item,uses_left:usesLeft};
+      document.getElementById('use-meta').textContent=(CAT_LABELS[item.category]||'')+` · ${usesLeft} Nutzungen übrig`;
+      const u=usesLeft;
+      document.getElementById('use-dots').innerHTML=Array(item.max_uses||10).fill(0).map((_,i)=>`<span class="ud ${i>=u?'used':''}"></span>`).join('');
+      showNotif(`👕 ${item.name} angezogen! Noch ${usesLeft}×`);
+      db.from('inventory').update({uses_left:usesLeft}).eq('id',item.id);
     }
-    renderInvGrid(cache.inv || []);
+    if(cache.inv) renderInvGrid(cache.inv);
   } else {
     showNotif(`✅ ${item.name} benutzt!`);
+    closeUsePopup();
   }
 }
 
-// ─── CALCULATOR ───────────────────────────────────────────────────────────────
-function calcInput(v) {
-  if (calcExpr === '0' && v !== '.') calcExpr = v; else calcExpr += v;
-  document.getElementById('calc-display').textContent = calcExpr;
+// ═══════════════════════════════════════════════════════════════
+// SIDE PANEL (Transfer / Connect / Shop / Verlauf)
+// ═══════════════════════════════════════════════════════════════
+function toggleSidePanel(tab) {
+  const panel=document.getElementById('sidePanel');
+  const isOpen=panel.classList.contains('open');
+  if(isOpen&&activeSideTab===tab){closeSidePanel();return;}
+  panel.classList.add('open');
+  activeSideTab=tab;
+  if(isPointerLocked) document.exitPointerLock();
+  spTab(tab);
 }
-function calcEquals() {
-  try {
-    let r = Function('"use strict";return (' + calcExpr + ')')();
-    r = Math.round(r * 100) / 100; calcExpr = String(r); calcTotal = r;
-    document.getElementById('calc-display').textContent = fmt(r); updateCalcNote();
-  } catch { document.getElementById('calc-display').textContent = 'Fehler'; calcExpr = '0'; }
-}
-function clearCalc() {
-  calcExpr = '0'; calcTotal = 0; calcItems = [];
-  document.getElementById('calc-display').textContent = '0';
-  document.getElementById('item-list').innerHTML = '';
-  updateCalcNote();
-}
-function addArtikel() {
-  const name  = document.getElementById('artikel-name').value.trim();
-  const preis = parseFloat(document.getElementById('artikel-preis').value);
-  if (!name || !preis || preis <= 0) return;
-  calcItems.push({ name, preis });
-  calcTotal = Math.round(calcItems.reduce((s,i) => s+i.preis, 0)*100)/100;
-  calcExpr  = String(calcTotal);
-  document.getElementById('calc-display').textContent = fmt(calcTotal);
-  document.getElementById('artikel-name').value  = '';
-  document.getElementById('artikel-preis').value = '';
-  renderItemList(); updateCalcNote();
-}
-function removeItem(i) {
-  calcItems.splice(i,1);
-  calcTotal = Math.round(calcItems.reduce((s,it) => s+it.preis,0)*100)/100;
-  calcExpr  = String(calcTotal);
-  document.getElementById('calc-display').textContent = calcTotal > 0 ? fmt(calcTotal) : '0';
-  renderItemList(); updateCalcNote();
-}
-function renderItemList() {
-  const list = document.getElementById('item-list');
-  if (!calcItems.length) { list.innerHTML = ''; return; }
-  list.innerHTML = calcItems.map((it,i) => `
-    <div class="item-row"><span>${it.name}</span>
-    <span style="display:flex;align-items:center;gap:6px;"><span style="color:var(--gold);">${fmt(it.preis)}</span>
-    <button onclick="removeItem(${i})">✕</button></span></div>`).join('') +
-    `<div class="item-row" style="font-weight:700;"><span>GESAMT</span><span style="color:var(--gold);">${fmt(calcTotal)}</span></div>`;
-}
-function updateCalcNote() {
-  document.getElementById('calc-note-display').textContent = calcItems.length > 0
-    ? calcItems.map(i=>i.name).join(', ') + ' = ' + fmt(calcTotal)
-    : 'Artikel hinzufügen...';
-}
+function closeSidePanel(){document.getElementById('sidePanel').classList.remove('open');activeSideTab='';}
 
-// ─── PAYMENT REQUESTS ─────────────────────────────────────────────────────────
-async function sendPaymentRequest() {
-  const toName = document.getElementById('payment-req-to').value;
-  const amount = calcTotal || parseFloat(calcExpr) || 0;
-  if (!toName) return showStatus('payment-req-status','Empfänger wählen!', false);
-  if (!amount || amount <= 0) return showStatus('payment-req-status','Betrag berechnen!', false);
-  const { error } = await db.from('payment_requests').insert({
-    from_user: currentUser.name, to_user: toName, amount, items: calcItems, status: 'pending'
+function spTab(name) {
+  spActiveSec=name;
+  ['verbinden','transfer','meinshop','verlauf'].forEach(s=>{
+    const el=document.getElementById('sp-'+s);
+    if(el) el.style.display=s===name?'block':'none';
   });
-  if (error) return showStatus('payment-req-status','Fehler: ' + error.message, false);
-  showStatus('payment-req-status', `✅ Anfrage über ${fmt(amount)} an ${toName} gesendet!`, true);
-  showNotif(`🧾 Zahlungsanfrage an ${toName} gesendet`);
+  document.querySelectorAll('.sp-tab').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase().includes(name==='meinshop'?'shop':name)));
+  document.getElementById('sidePanel').classList.add('open');
+  if(name==='verlauf') loadTx();
+  if(name==='meinshop') loadMyProds();
+  if(name==='verbinden') renderSpConnList();
 }
 
-function showPaymentModal(req) {
-  pendingReqId = req.id;
-  document.getElementById('modal-from-text').textContent = 'Von: ' + req.from_user;
-  document.getElementById('modal-amount').textContent    = fmt(req.amount);
-  const items = Array.isArray(req.items) ? req.items : [];
-  document.getElementById('modal-items-text').innerHTML = items.length > 0 ? items.map(i=>`${i.name}: ${fmt(i.preis)}`).join('<br>') : '';
-  document.getElementById('payment-modal').classList.add('show');
-  showNotif('🧾 Zahlungsanfrage von ' + req.from_user + '!');
+function renderTransferSelect() {
+  const conns=currentUser?.connections||[];
+  const opts=conns.length?'<option value="">— Wählen —</option>'+conns.map(n=>`<option value="${n}">${n}</option>`).join(''):'<option value="">Keine Verbindungen</option>';
+  document.getElementById('sp-transfer-to').innerHTML=opts;
 }
 
-async function acceptPaymentRequest() {
-  if (!pendingReqId) return;
-  const { data: req } = await db.from('payment_requests').select('*').eq('id', pendingReqId).single();
-  if (!req) return;
-  const { data: freshSelf } = await db.from('accounts').select('balance').eq('id', currentUser.id).single();
-  const balance = freshSelf ? freshSelf.balance : currentUser.balance;
-  if (balance < req.amount) {
-    const st = document.getElementById('modal-status');
-    st.textContent = 'Nicht genug Guthaben!'; st.className = 'status-msg show status-err'; return;
-  }
+function renderSpConnList() {
+  const conns=currentUser?.connections||[];
+  document.getElementById('sp-my-pass').textContent=currentUser?.password||'···';
+  const div=document.getElementById('sp-conn-list');
+  if(!conns.length){div.innerHTML='<p style="font-size:0.72rem;color:rgba(255,255,255,0.3);">Noch keine.</p>';return;}
+  div.innerHTML=conns.map(n=>`<div class="conn-item"><span style="display:flex;align-items:center;gap:8px"><span class="seller-dot"></span>${n}</span><button class="mc-btn mc-btn-red" style="padding:4px 10px;font-size:0.68rem" onclick="disconnectFrom('${n}')">Trennen</button></div>`).join('');
+}
 
-  // Optimistic update
-  currentUser.balance = balance - req.amount;
-  updateBalanceDisplay(currentUser.balance);
+function copyPass() {
+  const p=currentUser?.password;
+  if(!p)return;
+  if(navigator.clipboard) navigator.clipboard.writeText(p).catch(()=>{});
+  showNotif('📋 Passwort kopiert!');
+}
 
-  const [fromRes] = await Promise.all([
-    db.from('accounts').select('*').eq('name', req.from_user).single(),
-    db.from('accounts').update({ balance: balance - req.amount }).eq('id', currentUser.id)
-  ]);
-  if (fromRes.data) {
-    await db.from('accounts').update({ balance: fromRes.data.balance + req.amount }).eq('id', fromRes.data.id);
-  }
+async function connectAccount() {
+  const pass=document.getElementById('sp-conn-pass').value.trim();
+  if(!pass)return setStatus('sp-conn-status','Passwort eingeben!',false);
+  if(pass===currentUser.password)return setStatus('sp-conn-status','Eigenes Passwort!',false);
+  const {data:other,error}=await db.from('accounts').select('*').eq('password',pass).single();
+  if(error||!other)return setStatus('sp-conn-status','❌ Konto nicht gefunden!',false);
+  if((currentUser.connections||[]).includes(other.name))return setStatus('sp-conn-status','Bereits verbunden!',false);
+  const myC=[...(currentUser.connections||[]),other.name];
+  const otherC=[...(other.connections||[])];
+  if(!otherC.includes(currentUser.name)) otherC.push(currentUser.name);
   await Promise.all([
-    db.from('transactions').insert({
-      from_user: currentUser.name, to_user: req.from_user, amount: req.amount,
-      note: 'Zahlung: ' + (Array.isArray(req.items) ? req.items.map(i=>i.name).join(', ') : '')
-    }),
-    db.from('payment_requests').update({ status: 'accepted' }).eq('id', pendingReqId)
+    db.from('accounts').update({connections:myC}).eq('id',currentUser.id),
+    db.from('accounts').update({connections:otherC}).eq('id',other.id)
   ]);
-  cache.tx = null;
-  closePaymentModal();
-  showNotif('✅ ' + fmt(req.amount) + ' bezahlt!');
-  if (document.getElementById('tab-verlauf').style.display !== 'none') renderTxList();
+  currentUser.connections=myC;
+  setStatus('sp-conn-status','✅ Verbunden mit '+other.name+'!',true);
+  document.getElementById('sp-conn-pass').value='';
+  renderSpConnList(); renderTransferSelect();
 }
 
-async function declinePaymentRequest() {
-  if (pendingReqId) await db.from('payment_requests').update({ status: 'declined' }).eq('id', pendingReqId);
-  closePaymentModal();
+async function disconnectFrom(name) {
+  const myC=(currentUser.connections||[]).filter(n=>n!==name);
+  const [,otherRes]=await Promise.all([
+    db.from('accounts').update({connections:myC}).eq('id',currentUser.id),
+    db.from('accounts').select('*').eq('name',name).single()
+  ]);
+  if(otherRes.data){
+    const otherC=(otherRes.data.connections||[]).filter(n=>n!==currentUser.name);
+    await db.from('accounts').update({connections:otherC}).eq('id',otherRes.data.id);
+  }
+  currentUser.connections=myC;
+  renderSpConnList(); renderTransferSelect();
 }
 
-function closePaymentModal() {
-  document.getElementById('payment-modal').classList.remove('show');
-  document.getElementById('modal-status').className = 'status-msg';
-  pendingReqId = null;
+async function sendMoney() {
+  const toName=document.getElementById('sp-transfer-to').value;
+  const amount=parseFloat(document.getElementById('sp-transfer-amt').value);
+  const note=document.getElementById('sp-transfer-note').value.trim();
+  if(!toName)return setStatus('sp-transfer-status','Empfänger wählen!',false);
+  if(!amount||amount<=0)return setStatus('sp-transfer-status','Betrag eingeben!',false);
+  if(amount>currentUser.balance)return setStatus('sp-transfer-status','Nicht genug!',false);
+  const prevBal=currentUser.balance;
+  currentUser.balance=Math.round((currentUser.balance-amount)*100)/100;
+  document.getElementById('hud-balance').textContent='💰 '+fmt(currentUser.balance);
+  try{
+    const [selfRes,toRes]=await Promise.all([
+      db.from('accounts').select('balance').eq('id',currentUser.id).single(),
+      db.from('accounts').select('*').eq('name',toName).single()
+    ]);
+    if(amount>selfRes.data.balance)throw new Error('Nicht genug!');
+    if(!toRes.data)throw new Error('Empfänger nicht gefunden!');
+    await Promise.all([
+      db.from('accounts').update({balance:selfRes.data.balance-amount}).eq('id',currentUser.id),
+      db.from('accounts').update({balance:toRes.data.balance+amount}).eq('id',toRes.data.id),
+      db.from('transactions').insert({from_user:currentUser.name,to_user:toName,amount,note})
+    ]);
+    currentUser.balance=selfRes.data.balance-amount;
+    document.getElementById('hud-balance').textContent='💰 '+fmt(currentUser.balance);
+    cache.tx=null;
+    setStatus('sp-transfer-status',`✅ ${fmt(amount)} an ${toName}!`,true);
+    showNotif(`💸 ${fmt(amount)} an ${toName} gesendet`);
+    document.getElementById('sp-transfer-amt').value='';
+    document.getElementById('sp-transfer-note').value='';
+  }catch(err){
+    currentUser.balance=prevBal;
+    document.getElementById('hud-balance').textContent='💰 '+fmt(currentUser.balance);
+    setStatus('sp-transfer-status','❌ '+err.message,false);
+  }
 }
 
-// ─── TAB NAV ──────────────────────────────────────────────────────────────────
-function showTab(name) {
-  ['verbinden','transfer','marktplatz','meinshop','inventar','rechner','verlauf'].forEach(t => {
-    document.getElementById('tab-'+t).style.display = t === name ? 'block' : 'none';
-    const btn = document.getElementById('nav-'+t);
-    if (btn) btn.classList.toggle('active', t === name);
-  });
-  // Only load when tab becomes visible, use cache when possible
-  if (name === 'verlauf')    renderTxList();
-  if (name === 'inventar')   renderInventar();
-  if (name === 'marktplatz') renderMarketSellerList();
-  if (name === 'meinshop')   switchShopTab('produkte');
+async function loadTx() {
+  if(cache.tx&&(Date.now()-cache.txTs<TTL)){document.getElementById('sp-tx-list').innerHTML=cache.tx;return;}
+  const {data:txs}=await db.from('transactions').select('*').or(`from_user.eq.${currentUser.name},to_user.eq.${currentUser.name}`).order('created_at',{ascending:false}).limit(30);
+  if(!txs||!txs.length){cache.tx='<p style="font-size:0.72rem;color:rgba(255,255,255,0.3);">Noch keine.</p>';document.getElementById('sp-tx-list').innerHTML=cache.tx;return;}
+  cache.tx=txs.map(t=>{
+    const out=t.from_user===currentUser.name;
+    const ts=new Date(t.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return`<div class="tx-item"><span>${out?'→ '+t.to_user:'← '+t.from_user}${t.note?' · '+t.note:''}</span><span class="${out?'tx-minus':'tx-plus'}">${out?'-':'+'}${fmt(t.amount)}</span></div>`;
+  }).join('');
+  cache.txTs=Date.now();
+  document.getElementById('sp-tx-list').innerHTML=cache.tx;
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-window.addEventListener('load', async () => {
-  try { await db.from('accounts').select('id').limit(1); } catch(e) {}
-  setLoading(false);
-  document.getElementById('screen-login').classList.add('active');
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && currentUser) checkPendingRequests();
-  });
+async function loadMyProds() {
+  const stale=!cache.myProds||(Date.now()-cache.myProdsTs>TTL);
+  if(!stale){renderMyProdsPanel(cache.myProds);return;}
+  const {data}=await db.from('products').select('*').eq('seller',currentUser.name).eq('active',true).order('created_at',{ascending:false});
+  cache.myProds=data||[]; cache.myProdsTs=Date.now();
+  renderMyProdsPanel(cache.myProds);
+}
+
+function renderMyProdsPanel(prods) {
+  const div=document.getElementById('sp-myprods');
+  if(!prods.length){div.innerHTML='<p style="font-size:0.72rem;color:rgba(255,255,255,0.3);">Noch keine Produkte.</p>';return;}
+  div.innerHTML=prods.map(p=>`<div class="conn-item"><span style="font-size:0.73rem;">${CAT_EMOJI[p.category]||'📦'} ${p.name} · ${fmt(p.price)} · Lager: ${p.stock}</span><button class="mc-btn mc-btn-red" style="padding:4px 8px;font-size:0.65rem" onclick="deleteProduct('${p.id}')">🗑️</button></div>`).join('');
+}
+
+async function uploadProductQuick() {
+  const name=document.getElementById('sp-prod-name').value.trim();
+  const category=document.getElementById('sp-prod-cat').value;
+  const price=parseFloat(document.getElementById('sp-prod-price').value);
+  const stock=parseInt(document.getElementById('sp-prod-stock').value)||1;
+  if(!name)return setStatus('sp-prod-status','Name eingeben!',false);
+  if(!category)return setStatus('sp-prod-status','Kategorie wählen!',false);
+  if(!price||price<=0)return setStatus('sp-prod-status','Preis eingeben!',false);
+  const {error}=await db.from('products').insert({seller:currentUser.name,name,category,price,stock,active:true});
+  if(error)return setStatus('sp-prod-status','❌ '+error.message,false);
+  setStatus('sp-prod-status','✅ Hochgeladen!',true);
+  showNotif(`📤 ${name} in Shop eingestellt!`);
+  ['sp-prod-name','sp-prod-price'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sp-prod-stock').value='1';
+  document.getElementById('sp-prod-cat').value='';
+  cache.myProds=null; loadMyProds();
+}
+
+async function deleteProduct(id) {
+  await db.from('products').delete().eq('id',id).eq('seller',currentUser.name);
+  cache.myProds=null; loadMyProds();
+  showNotif('🗑️ Produkt gelöscht!');
+}
+
+async function openMyShop() {
+  toggleSidePanel('meinshop');
+  if(isPointerLocked) document.exitPointerLock();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAYMENT REQUEST
+// ═══════════════════════════════════════════════════════════════
+function showPayModal(req) {
+  pendingReqId=req.id;
+  document.getElementById('pay-from-text').textContent='Von: '+req.from_user;
+  document.getElementById('pay-amount').textContent=fmt(req.amount);
+  const items=Array.isArray(req.items)?req.items:[];
+  document.getElementById('pay-items').innerHTML=items.map(i=>`${i.name}: ${fmt(i.preis)}`).join('<br>');
+  const pm=document.getElementById('payModal'); pm.style.display='flex';
+  showNotif('🧾 Zahlungsanfrage von '+req.from_user+'!');
+}
+
+async function acceptPayment() {
+  if(!pendingReqId)return;
+  const {data:req}=await db.from('payment_requests').select('*').eq('id',pendingReqId).single();
+  if(!req)return;
+  const {data:fresh}=await db.from('accounts').select('balance').eq('id',currentUser.id).single();
+  const bal=fresh?fresh.balance:currentUser.balance;
+  if(bal<req.amount){document.getElementById('pay-status').textContent='Nicht genug!';document.getElementById('pay-status').className='status-line status-err';return;}
+  currentUser.balance=bal-req.amount;
+  document.getElementById('hud-balance').textContent='💰 '+fmt(currentUser.balance);
+  const [fromRes]=await Promise.all([
+    db.from('accounts').select('*').eq('name',req.from_user).single(),
+    db.from('accounts').update({balance:bal-req.amount}).eq('id',currentUser.id)
+  ]);
+  if(fromRes.data) await db.from('accounts').update({balance:fromRes.data.balance+req.amount}).eq('id',fromRes.data.id);
+  await Promise.all([
+    db.from('transactions').insert({from_user:currentUser.name,to_user:req.from_user,amount:req.amount,note:'Zahlung'}),
+    db.from('payment_requests').update({status:'accepted'}).eq('id',pendingReqId)
+  ]);
+  cache.tx=null;
+  document.getElementById('payModal').style.display='none';
+  pendingReqId=null;
+  showNotif('✅ '+fmt(req.amount)+' bezahlt!');
+}
+
+async function declinePayment() {
+  if(pendingReqId) await db.from('payment_requests').update({status:'declined'}).eq('id',pendingReqId);
+  document.getElementById('payModal').style.display='none';
+  pendingReqId=null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener('load', async ()=>{
+  const fill=document.getElementById('progress-fill');
+  const txt=document.getElementById('loading-text');
+  const steps=[
+    [10,'Three.js laden...'],
+    [30,'Welt generieren...'],
+    [55,'Blöcke platzieren...'],
+    [75,'Beleuchtung...'],
+    [90,'Shops bauen...'],
+    [100,'Bereit!']
+  ];
+  let si=0;
+  const prog=setInterval(()=>{
+    if(si<steps.length){fill.style.width=steps[si][0]+'%';txt.textContent=steps[si][1];si++;}
+    else clearInterval(prog);
+  },300);
+
+  try{await db.from('accounts').select('id').limit(1);}catch(e){}
+  initThree();
+
+  setTimeout(()=>{
+    document.getElementById('loading').style.display='none';
+  }, 2200);
 });
-
-async function checkPendingRequests() {
-  const { data } = await db.from('payment_requests')
-    .select('*').eq('to_user', currentUser.name).eq('status', 'pending')
-    .order('created_at', { ascending: false }).limit(1);
-  if (data && data.length > 0) showPaymentModal(data[0]);
-}
 </script>
 </body>
 </html>
