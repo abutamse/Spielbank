@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spielbank</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #f0d080;
+    --gold-dark: #8a6820;
+    --green: #1a3a2a;
+    --green-mid: #204030;
+    --green-dark: #0e2018;
+    --felt: #143222;
+    --cream: #f5e6c8;
+    --red: #c0392b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--green-dark);
+    color: var(--cream);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.15) 0%, transparent 60%),
+      repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.01) 20px, rgba(255,255,255,0.01) 21px);
+  }
+  header {
+    text-align: center;
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--gold-dark);
+    background: linear-gradient(180deg, #0a1810 0%, transparent 100%);
+    position: relative;
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(201,168,76,0.5), 2px 2px 0 var(--gold-dark);
+    letter-spacing: 4px;
+  }
+  header p { color: rgba(245,230,200,0.5); font-size: 0.7rem; letter-spacing: 3px; margin-top: 4px; }
+  .device-badge {
+    position: absolute; top: 15px; right: 15px;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid var(--gold-dark);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.65rem;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+  .realtime-dot {
+    display: inline-block; width: 7px; height: 7px;
+    border-radius: 50%; background: #1a9c58;
+    box-shadow: 0 0 6px #1a9c58;
+    animation: pulse 2s infinite;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .container { max-width: 720px; margin: 0 auto; padding: 16px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .card {
+    background: linear-gradient(135deg, var(--green-mid) 0%, var(--felt) 100%);
+    border: 1px solid var(--gold-dark);
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(201,168,76,0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .card h2 { font-family: 'Playfair Display', serif; color: var(--gold); font-size: 1.2rem; margin-bottom: 16px; letter-spacing: 2px; }
+  .card h3 { font-family: 'Playfair Display', serif; color: var(--gold-light); font-size: 0.95rem; margin-bottom: 10px; letter-spacing: 1px; }
+  input, select {
+    width: 100%;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--gold-dark);
+    border-radius: 6px;
+    color: var(--cream);
+    padding: 10px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus { border-color: var(--gold); }
+  input::placeholder { color: rgba(245,230,200,0.3); }
+  select option { background: #1a3a2a; }
+  .btn {
+    display: inline-block; padding: 10px 20px; border-radius: 6px; border: none;
+    cursor: pointer; font-family: 'DM Mono', monospace; font-size: 0.8rem;
+    font-weight: 500; letter-spacing: 1px; transition: all 0.2s; text-transform: uppercase;
+  }
+  .btn-gold { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--green-dark); font-weight: 700; }
+  .btn-gold:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-outline { background: transparent; border: 1px solid var(--gold-dark); color: var(--gold); }
+  .btn-outline:hover { border-color: var(--gold); background: rgba(201,168,76,0.1); }
+  .btn-red { background: linear-gradient(135deg, #7a1a14, var(--red)); color: white; }
+  .btn-red:hover { filter: brightness(1.15); }
+  .btn-green { background: linear-gradient(135deg, #0d5c34, #1a9c58); color: white; }
+  .btn-green:hover { filter: brightness(1.15); }
+  .btn-full { width: 100%; text-align: center; margin-bottom: 8px; }
+  .btn-sm { padding: 6px 12px; font-size: 0.72rem; }
+  .balance-display { text-align: center; padding: 16px; margin-bottom: 16px; }
+  .balance-amount {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.2rem, 7vw, 4rem);
+    font-weight: 900; color: var(--gold);
+    text-shadow: 0 0 20px rgba(201,168,76,0.4); line-height: 1;
+    transition: transform 0.15s ease;
+  }
+  .balance-amount.bump { transform: scale(1.06); }
+  .balance-label { font-size: 0.7rem; letter-spacing: 3px; color: rgba(245,230,200,0.4); margin-top: 4px; }
+  .user-name-display { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--cream); margin-bottom: 4px; }
+  .status-msg { padding: 8px 12px; border-radius: 6px; font-size: 0.78rem; margin-bottom: 10px; display: none; letter-spacing: 0.5px; }
+  .status-msg.show { display: block; }
+  .status-ok { background: rgba(26,156,88,0.2); border: 1px solid #1a9c58; color: #6dffb0; }
+  .status-err { background: rgba(192,57,43,0.2); border: 1px solid var(--red); color: #ff8080; }
+  .tx-list { max-height: 260px; overflow-y: auto; }
+  .tx-list::-webkit-scrollbar { width: 4px; }
+  .tx-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+  .tx-list::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 2px; }
+  .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(201,168,76,0.1); font-size: 0.75rem; }
+  .tx-item:last-child { border-bottom: none; }
+  .tx-plus { color: #6dffb0; }
+  .tx-minus { color: #ff8080; }
+  .tx-time { color: rgba(245,230,200,0.3); font-size: 0.65rem; }
+  .connected-device {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; border: 1px solid rgba(201,168,76,0.15);
+    border-radius: 8px; margin-bottom: 6px; font-size: 0.78rem;
+    background: rgba(255,255,255,0.03);
+  }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
+  .dot-green { background: #1a9c58; box-shadow: 0 0 6px #1a9c58; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 7px 14px; border: 1px solid var(--gold-dark); border-radius: 20px;
+    background: transparent; color: rgba(245,230,200,0.5); cursor: pointer;
+    font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 1px; transition: all 0.2s;
+  }
+  .tab-btn.active { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--green-dark); font-weight: 700; border-color: var(--gold); }
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    z-index: 100; align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: linear-gradient(135deg, var(--green-mid), var(--felt));
+    border: 2px solid var(--gold); border-radius: 16px; padding: 28px;
+    max-width: 420px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(201,168,76,0.2);
+    position: relative; animation: modalIn 0.3s ease;
+    max-height: 90vh; overflow-y: auto;
+  }
+  @keyframes modalIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal h2 { font-family: 'Playfair Display', serif; color: var(--gold); margin-bottom: 14px; }
+  .modal-amount { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--gold); text-align: center; margin: 12px 0; }
+  .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: var(--cream); cursor: pointer; font-size: 1.4rem; }
+  .divider { border: none; border-top: 1px solid rgba(201,168,76,0.15); margin: 16px 0; }
+  .chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { padding: 5px 12px; border-radius: 20px; font-size: 0.72rem; border: 1px solid; cursor: pointer; transition: all 0.15s; font-family: 'DM Mono', monospace; }
+  .chip-gold { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.1); }
+  .chip-gold:hover { background: rgba(201,168,76,0.25); transform: translateY(-2px); }
+  #notification-bar {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+    color: var(--green-dark); text-align: center; padding: 12px;
+    font-family: 'DM Mono', monospace; font-weight: 700; font-size: 0.82rem;
+    z-index: 200; transform: translateY(-100%); transition: transform 0.4s ease; letter-spacing: 1px;
+  }
+  #notification-bar.show { transform: translateY(0); }
+  .label { font-size: 0.68rem; letter-spacing: 2px; color: rgba(245,230,200,0.4); text-transform: uppercase; margin-bottom: 5px; }
+  .pass-box {
+    background: rgba(0,0,0,0.5); border: 2px solid var(--gold); border-radius: 8px;
+    padding: 12px; font-family: 'Playfair Display', serif; font-size: 1.4rem;
+    color: var(--gold); text-align: center; letter-spacing: 6px; margin-bottom: 14px;
+    user-select: all; cursor: pointer;
+  }
+  .loading-overlay {
+    position: fixed; inset: 0; background: rgba(14,32,24,0.95);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 300; gap: 16px;
+  }
+  .loading-spinner {
+    width: 48px; height: 48px; border: 3px solid rgba(201,168,76,0.2);
+    border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .calc-display {
+    background: rgba(0,0,0,0.6); border: 1px solid var(--gold-dark); border-radius: 6px;
+    padding: 10px 14px; font-family: 'Playfair Display', serif; font-size: 1.6rem;
+    color: var(--gold-light); text-align: right; min-height: 54px; margin-bottom: 4px;
+    letter-spacing: 1px; word-break: break-all;
+  }
+  .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .calc-btn {
+    padding: 12px 0; border: none; border-radius: 6px; cursor: pointer;
+    font-family: 'DM Mono', monospace; font-size: 0.95rem; font-weight: 500;
+    transition: all 0.15s; background: rgba(255,255,255,0.06); color: var(--cream);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .calc-btn:hover { background: rgba(255,255,255,0.12); }
+  .calc-btn.op { background: rgba(201,168,76,0.15); color: var(--gold); border-color: rgba(201,168,76,0.2); }
+  .calc-btn.eq { background: linear-gradient(135deg, var(--gold-dark), var(--gold)); color: var(--green-dark); font-weight: 700; }
+  .calc-btn.clear { background: rgba(192,57,43,0.25); color: #ff8080; }
+  .calc-btn.wide { grid-column: span 2; }
+  .item-list { margin-top: 8px; }
+  .item-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(201,168,76,0.08); font-size: 0.75rem; }
+  .item-row button { background: none; border: none; color: #ff8080; cursor: pointer; font-size: 0.85rem; padding: 0 4px; }
+  .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; border-radius: 6px; }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+</style>
+</head>
+<body>
+
+<div id="notification-bar">🔔</div>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div style="color:var(--gold);font-family:'Playfair Display',serif;font-size:1.2rem;letter-spacing:3px;">SPIELBANK</div>
+  <div style="color:rgba(245,230,200,0.4);font-size:0.75rem;">Verbinde mit Server...</div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="screen-login" class="screen">
+  <header>
+    <h1>SPIELBANK</h1>
+    <p><span class="realtime-dot"></span>LIVE · ECHTZEIT</p>
+  </header>
+  <div class="container">
+    <div class="card" style="max-width:440px;margin:24px auto;">
+      <div class="tabs">
+        <button class="tab-btn active" id="auth-tab-reg" onclick="switchAuthTab('register')">Konto erstellen</button>
+        <button class="tab-btn" id="auth-tab-login" onclick="switchAuthTab('login')">Einloggen</button>
+      </div>
+      <div id="tab-register">
+        <h3>Neues Konto erstellen</h3>
+        <div class="label">Name</div>
+        <input type="text" id="reg-name" placeholder="Dein Name..." autocomplete="off" />
+        <div class="label">Passwort</div>
+        <input type="text" id="reg-pass" placeholder="Passwort wählen..." autocomplete="off" />
+        <div class="label">Startguthaben (€)</div>
+        <div class="chip-row">
+          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=50">50€</span>
+          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=100">100€</span>
+          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=200">200€</span>
+          <span class="chip chip-gold" onclick="document.getElementById('reg-geld').value=500">500€</span>
+        </div>
+        <input type="number" id="reg-geld" placeholder="Oder selbst eingeben..." min="0" />
+        <div id="reg-status" class="status-msg"></div>
+        <button class="btn btn-gold btn-full" id="reg-btn" onclick="registerAccount()">Konto erstellen</button>
+      </div>
+      <div id="tab-login" style="display:none">
+        <h3>Einloggen</h3>
+        <div class="label">Name</div>
+        <input type="text" id="login-name" placeholder="Dein Name..." autocomplete="off" />
+        <div class="label">Passwort</div>
+        <input type="password" id="login-pass" placeholder="Passwort..." autocomplete="off" />
+        <div id="login-status" class="status-msg"></div>
+        <button class="btn btn-gold btn-full" id="login-btn" onclick="loginAccount()">Einloggen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD SCREEN -->
+<div id="screen-dashboard" class="screen">
+  <header>
+    <h1>SPIELBANK</h1>
+    <p><span class="realtime-dot"></span>LIVE</p>
+    <div class="device-badge" id="device-badge">—</div>
+  </header>
+  <div class="container">
+    <div class="card">
+      <div class="balance-display">
+        <div class="user-name-display" id="dash-name">—</div>
+        <div class="balance-amount" id="dash-balance">0,00 €</div>
+        <div class="balance-label">Aktuelles Guthaben</div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="showTab('verbinden')">🔗 Verbinden</button>
+        <button class="btn btn-outline btn-sm" onclick="showTab('transfer')">💸 Senden</button>
+        <button class="btn btn-outline btn-sm" onclick="showTab('rechner')">🧮 Rechner</button>
+        <button class="btn btn-outline btn-sm" onclick="showTab('verlauf')">📜 Verlauf</button>
+        <button class="btn btn-red btn-sm" onclick="logout()">Abmelden</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" id="nav-verbinden" onclick="showTab('verbinden')">🔗 Verbinden</button>
+      <button class="tab-btn" id="nav-transfer" onclick="showTab('transfer')">💸 Transfer</button>
+      <button class="tab-btn" id="nav-rechner" onclick="showTab('rechner')">🧮 Rechner</button>
+      <button class="tab-btn" id="nav-verlauf" onclick="showTab('verlauf')">📜 Verlauf</button>
+    </div>
+
+    <!-- VERBINDEN TAB -->
+    <div id="tab-verbinden" class="card">
+      <h2>🔗 Geräte verbinden</h2>
+      <h3>Dein Verbindungspasswort</h3>
+      <p style="font-size:0.75rem;color:rgba(245,230,200,0.5);margin-bottom:8px;">Zeige dieses Passwort dem anderen Gerät:</p>
+      <div class="pass-box" id="my-password-display">···</div>
+      <hr class="divider">
+      <h3>Mit anderem Konto verbinden</h3>
+      <div class="label">Passwort des anderen Kontos</div>
+      <input type="text" id="connect-pass" placeholder="Passwort eingeben..." autocomplete="off" />
+      <div id="connect-status" class="status-msg"></div>
+      <button class="btn btn-gold btn-full" onclick="connectToAccount()">🔗 Verbinden</button>
+      <hr class="divider">
+      <h3>Verbundene Konten</h3>
+      <div id="connected-list"><p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p></div>
+    </div>
+
+    <!-- TRANSFER TAB -->
+    <div id="tab-transfer" class="card" style="display:none">
+      <h2>💸 Geld senden</h2>
+      <div class="label">Empfänger</div>
+      <select id="transfer-to"><option value="">— Konto wählen —</option></select>
+      <div class="label">Betrag (€)</div>
+      <div class="chip-row">
+        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=5">5€</span>
+        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=10">10€</span>
+        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=20">20€</span>
+        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=50">50€</span>
+        <span class="chip chip-gold" onclick="document.getElementById('transfer-amount').value=100">100€</span>
+      </div>
+      <input type="number" id="transfer-amount" placeholder="Betrag in €..." min="0.01" step="0.01" />
+      <div class="label">Grund (optional)</div>
+      <input type="text" id="transfer-note" placeholder="z.B. Bier, Einsatz..." />
+      <div id="transfer-status" class="status-msg"></div>
+      <button class="btn btn-green btn-full" id="send-money-btn" onclick="sendMoney()">💸 Jetzt senden</button>
+    </div>
+
+    <!-- RECHNER TAB -->
+    <div id="tab-rechner" class="card" style="display:none">
+      <h2>🧮 Kassenrechner</h2>
+      <div class="calc-display" id="calc-display">0</div>
+      <div style="font-size:0.72rem;color:rgba(245,230,200,0.4);margin-bottom:8px;min-height:20px;" id="calc-note-display">Artikel hinzufügen...</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="text" id="artikel-name" placeholder="Artikel..." style="margin:0;flex:2;" />
+        <input type="number" id="artikel-preis" placeholder="€" style="margin:0;flex:1;" min="0" step="0.01" />
+        <button class="btn btn-gold btn-sm" onclick="addArtikel()">+</button>
+      </div>
+      <div class="item-list" id="item-list"></div>
+      <hr class="divider" style="margin:8px 0;">
+      <div class="calc-grid">
+        <button class="calc-btn clear wide" onclick="clearCalc()">C</button>
+        <button class="calc-btn op" onclick="calcInput('/')">÷</button>
+        <button class="calc-btn op" onclick="calcInput('*')">×</button>
+        <button class="calc-btn" onclick="calcInput('7')">7</button>
+        <button class="calc-btn" onclick="calcInput('8')">8</button>
+        <button class="calc-btn" onclick="calcInput('9')">9</button>
+        <button class="calc-btn op" onclick="calcInput('-')">−</button>
+        <button class="calc-btn" onclick="calcInput('4')">4</button>
+        <button class="calc-btn" onclick="calcInput('5')">5</button>
+        <button class="calc-btn" onclick="calcInput('6')">6</button>
+        <button class="calc-btn op" onclick="calcInput('+')">+</button>
+        <button class="calc-btn" onclick="calcInput('1')">1</button>
+        <button class="calc-btn" onclick="calcInput('2')">2</button>
+        <button class="calc-btn" onclick="calcInput('3')">3</button>
+        <button class="calc-btn eq" style="grid-row:span 2;" onclick="calcEquals()">=</button>
+        <button class="calc-btn wide" onclick="calcInput('0')">0</button>
+        <button class="calc-btn" onclick="calcInput('.')">.</button>
+      </div>
+      <hr class="divider">
+      <h3>Zahlungsanfrage senden</h3>
+      <select id="payment-req-to"><option value="">— Empfänger wählen —</option></select>
+      <div id="payment-req-status" class="status-msg"></div>
+      <button class="btn btn-gold btn-full" onclick="sendPaymentRequest()">🧾 Zahlungsanfrage senden</button>
+    </div>
+
+    <!-- VERLAUF TAB -->
+    <div id="tab-verlauf" class="card" style="display:none">
+      <h2>📜 Transaktionsverlauf</h2>
+      <div class="tx-list" id="tx-list"><p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="payment-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="declinePaymentRequest()">✕</button>
+    <h2>🧾 Zahlungsanfrage!</h2>
+    <p style="font-size:0.82rem;color:rgba(245,230,200,0.6);" id="modal-from-text">Von: —</p>
+    <div class="modal-amount" id="modal-amount">0,00 €</div>
+    <div style="font-size:0.72rem;color:rgba(245,230,200,0.5);text-align:center;margin-bottom:16px;line-height:1.6;" id="modal-items-text"></div>
+    <div id="modal-status" class="status-msg"></div>
+    <button class="btn btn-green btn-full" onclick="acceptPaymentRequest()">✅ Jetzt bezahlen</button>
+    <button class="btn btn-red btn-full" style="margin-bottom:0;" onclick="declinePaymentRequest()">❌ Ablehnen</button>
+  </div>
+</div>
+
+<script>
+// ─── NEON BACKEND (via custom REST API on your Express/Vercel server) ─────────
+// Talks to YOUR server, which talks to Neon Postgres.
+const API_BASE = 'https://spielbank.vercel.app';
+
+// ── Mini query-builder shim (mimics the subset of supabase-js used below) ──
+function makeBuilder(table) {
+  const state = { table, action: 'select', filters: [], orFilter: null, order: null, limit: null, single: false, values: null };
+  const builder = {
+    select() { return builder; },
+    insert(values) { state.action = 'insert'; state.values = values; return builder; },
+    update(values) { state.action = 'update'; state.values = values; return builder; },
+    delete() { state.action = 'delete'; return builder; },
+    eq(col, val) { state.filters.push({ col, op: 'eq', val }); return builder; },
+    in(col, arr) { state.filters.push({ col, op: 'in', val: arr }); return builder; },
+    or(expr) { state.orFilter = expr; return builder; },
+    order(col, opts) { state.order = { col, ascending: !opts || opts.ascending !== false }; return builder; },
+    limit(n) { state.limit = n; return builder; },
+    single() { state.single = true; return builder; },
+    then(resolve, reject) { return execQuery(state).then(resolve, reject); },
+    catch(fn) { return execQuery(state).catch(fn); }
+  };
+  return builder;
+}
+
+async function execQuery(state) {
+  try {
+    const res = await fetch(API_BASE + '/api/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state)
+    });
+    let json = {};
+    try { json = await res.json(); } catch (e) {}
+    if (!res.ok) return { data: null, error: json.error || { message: 'Serverfehler (' + res.status + ')' } };
+    return { data: json.data, error: null };
+  } catch (e) {
+    return { data: null, error: { message: 'Verbindung fehlgeschlagen: ' + e.message } };
+  }
+}
+
+// ── Realtime shim: polls /api/query every few seconds and diffs results ──
+function parsePgFilter(filterStr) {
+  if (!filterStr) return null;
+  const m = filterStr.match(/^([a-zA-Z0-9_]+)=eq\.(.*)$/);
+  if (!m) return null;
+  return { col: m[1], val: m[2] };
+}
+
+function makeChannel() {
+  const chan = { _regs: [], _interval: null };
+  chan.on = function (evt, opts, cb) {
+    chan._regs.push({ opts, cb, parsedFilter: parsePgFilter(opts.filter), lastMap: null });
+    return chan;
+  };
+  chan.subscribe = function () {
+    const tick = async () => {
+      for (const reg of chan._regs) {
+        const st = { table: reg.opts.table, action: 'select', filters: [], order: { col: 'created_at', ascending: false }, limit: 30, single: false, values: null };
+        if (reg.parsedFilter) st.filters.push({ col: reg.parsedFilter.col, op: 'eq', val: reg.parsedFilter.val });
+        const { data } = await execQuery(st);
+        const rows = data || [];
+        const newMap = {};
+        rows.forEach(r => { newMap[r.id] = r; });
+        if (reg.lastMap) {
+          for (const id in newMap) {
+            const row = newMap[id];
+            if (!(id in reg.lastMap)) {
+              if (reg.opts.event === 'INSERT' || reg.opts.event === '*') reg.cb({ new: row, eventType: 'INSERT' });
+            } else if (JSON.stringify(row) !== JSON.stringify(reg.lastMap[id])) {
+              if (reg.opts.event === 'UPDATE' || reg.opts.event === '*') reg.cb({ new: row, old: reg.lastMap[id], eventType: 'UPDATE' });
+            }
+          }
+        }
+        reg.lastMap = newMap;
+      }
+    };
+    tick();
+    chan._interval = setInterval(tick, 3000);
+    return chan;
+  };
+  return chan;
+}
+
+const db = {
+  from(table) { return makeBuilder(table); },
+  channel(_name) { return makeChannel(); },
+  removeChannel(chan) { if (chan && chan._interval) clearInterval(chan._interval); }
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let currentUser  = null;
+let pendingReqId = null;
+let calcExpr     = '0';
+let calcItems    = [];
+let calcTotal    = 0;
+let realtimeSubs = [];
+
+const cache = { tx: null, txTs: 0, TTL_FAST: 8000 };
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const fmt = n => Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+const now = () => Date.now();
+
+function showNotif(msg) {
+  const b = document.getElementById('notification-bar');
+  b.textContent = msg; b.classList.add('show');
+  setTimeout(() => b.classList.remove('show'), 4000);
+}
+function showStatus(id, msg, ok) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'status-msg show ' + (ok ? 'status-ok' : 'status-err');
+  setTimeout(() => { if(el) el.classList.remove('show'); }, 3500);
+}
+function setLoading(on) { document.getElementById('loading-overlay').style.display = on ? 'flex' : 'none'; }
+function setBtnLoading(id, loading, label) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.textContent = loading ? '...' : label;
+}
+function updateBalanceDisplay(newBalance, animate=true) {
+  const el = document.getElementById('dash-balance');
+  if (!el) return;
+  el.textContent = fmt(newBalance);
+  if (animate) {
+    el.classList.remove('bump');
+    requestAnimationFrame(() => { el.classList.add('bump'); setTimeout(() => el.classList.remove('bump'), 200); });
+  }
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function switchAuthTab(t) {
+  document.getElementById('tab-register').style.display = t==='register' ? 'block' : 'none';
+  document.getElementById('tab-login').style.display    = t==='login'    ? 'block' : 'none';
+  document.getElementById('auth-tab-reg').classList.toggle('active',   t==='register');
+  document.getElementById('auth-tab-login').classList.toggle('active', t==='login');
+}
+
+async function registerAccount() {
+  const name = document.getElementById('reg-name').value.trim();
+  const pass = document.getElementById('reg-pass').value.trim();
+  const geld = parseFloat(document.getElementById('reg-geld').value) || 0;
+  if (!name) return showStatus('reg-status','Name eingeben!', false);
+  if (!pass || pass.length < 3) return showStatus('reg-status','Passwort mind. 3 Zeichen!', false);
+  setBtnLoading('reg-btn', true, 'Konto erstellen');
+  const { error } = await db.from('accounts').insert({ name, password: pass, balance: geld, connections: [] });
+  setBtnLoading('reg-btn', false, 'Konto erstellen');
+  if (error) {
+    if (error.code === '23505') return showStatus('reg-status','Name bereits vergeben!', false);
+    return showStatus('reg-status','Fehler: ' + error.message, false);
+  }
+  showStatus('reg-status','✅ Konto erstellt! Jetzt einloggen.', true);
+  document.getElementById('login-name').value = name;
+  setTimeout(() => switchAuthTab('login'), 1200);
+}
+
+async function loginAccount() {
+  const name = document.getElementById('login-name').value.trim();
+  const pass = document.getElementById('login-pass').value.trim();
+  if (!name || !pass) return showStatus('login-status','Felder ausfüllen!', false);
+  setBtnLoading('login-btn', true, 'Einloggen');
+  const { data, error } = await db.from('accounts').select('*').eq('name', name).single();
+  setBtnLoading('login-btn', false, 'Einloggen');
+  if (error || !data) return showStatus('login-status','Konto nicht gefunden!', false);
+  if (data.password !== pass) return showStatus('login-status','Falsches Passwort!', false);
+  currentUser = data;
+  startRealtimeSubscriptions();
+  showDashboard();
+}
+
+function logout() {
+  realtimeSubs.forEach(s => db.removeChannel(s));
+  realtimeSubs = []; currentUser = null;
+  cache.tx = null;
+  document.getElementById('screen-dashboard').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
+  showTab('verbinden');
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function showDashboard() {
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-dashboard').classList.add('active');
+  renderDashboard();
+}
+
+function renderDashboard() {
+  if (!currentUser) return;
+  document.getElementById('dash-name').textContent    = currentUser.name;
+  document.getElementById('dash-balance').textContent = fmt(currentUser.balance);
+  document.getElementById('device-badge').textContent = currentUser.name.substring(0,10).toUpperCase();
+  document.getElementById('my-password-display').textContent = currentUser.password;
+  renderConnectedList();
+  renderTransferSelects();
+}
+
+// ─── REALTIME ─────────────────────────────────────────────────────────────────
+function startRealtimeSubscriptions() {
+  realtimeSubs.forEach(s => db.removeChannel(s));
+  realtimeSubs = [];
+
+  const accSub = db.channel('account-' + currentUser.id)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'accounts', filter: `id=eq.${currentUser.id}` }, payload => {
+      currentUser = { ...currentUser, ...payload.new };
+      updateBalanceDisplay(currentUser.balance);
+      document.getElementById('device-badge').textContent = currentUser.name.substring(0,10).toUpperCase();
+    }).subscribe();
+  realtimeSubs.push(accSub);
+
+  const reqSub = db.channel('payment-req-' + currentUser.name)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payment_requests', filter: `to_user=eq.${currentUser.name}` }, payload => {
+      if (payload.new.status === 'pending') showPaymentModal(payload.new);
+    }).subscribe();
+  realtimeSubs.push(reqSub);
+
+  const txSub = db.channel('tx-' + currentUser.name)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'transactions' }, payload => {
+      const t = payload.new;
+      if (t.from_user === currentUser.name || t.to_user === currentUser.name) {
+        cache.tx = null;
+        const verlaufVisible = document.getElementById('tab-verlauf').style.display !== 'none';
+        if (verlaufVisible) renderTxList();
+      }
+    }).subscribe();
+  realtimeSubs.push(txSub);
+}
+
+// ─── CONNECT ──────────────────────────────────────────────────────────────────
+async function connectToAccount() {
+  const pass = document.getElementById('connect-pass').value.trim();
+  if (!pass) return showStatus('connect-status','Passwort eingeben!', false);
+  if (pass === currentUser.password) return showStatus('connect-status','Das ist dein eigenes Passwort!', false);
+
+  const { data: other, error } = await db.from('accounts').select('*').eq('password', pass).single();
+  if (error || !other) return showStatus('connect-status','❌ Kein Konto gefunden!', false);
+  if ((currentUser.connections||[]).includes(other.name)) return showStatus('connect-status','Bereits verbunden mit ' + other.name + '!', false);
+
+  const myConns = [...(currentUser.connections||[]), other.name];
+  const otherConns = [...(other.connections||[])];
+  if (!otherConns.includes(currentUser.name)) otherConns.push(currentUser.name);
+
+  await Promise.all([
+    db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id),
+    db.from('accounts').update({ connections: otherConns }).eq('id', other.id)
+  ]);
+
+  currentUser.connections = myConns;
+  showStatus('connect-status','✅ Verbunden mit ' + other.name + '!', true);
+  document.getElementById('connect-pass').value = '';
+  renderConnectedList();
+  renderTransferSelects();
+}
+
+document.getElementById('my-password-display').addEventListener('click', function() {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(this.textContent).catch(()=>{});
+  }
+  showNotif('📋 Passwort kopiert!');
+});
+
+function renderConnectedList() {
+  const list = document.getElementById('connected-list');
+  const conns = currentUser.connections || [];
+  if (!conns.length) { list.innerHTML = '<p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Verbindungen.</p>'; return; }
+  list.innerHTML = conns.map(name => `
+    <div class="connected-device" style="border-color:rgba(26,156,88,0.4);background:rgba(26,156,88,0.08);">
+      <span><span class="dot dot-green"></span>${name}</span>
+      <button class="btn btn-red btn-sm" onclick="disconnectFrom('${name}')">Trennen</button>
+    </div>`).join('');
+}
+
+async function disconnectFrom(name) {
+  const myConns = (currentUser.connections||[]).filter(n => n !== name);
+  const [, otherRes] = await Promise.all([
+    db.from('accounts').update({ connections: myConns }).eq('id', currentUser.id),
+    db.from('accounts').select('*').eq('name', name).single()
+  ]);
+  if (otherRes.data) {
+    const otherConns = (otherRes.data.connections||[]).filter(n => n !== currentUser.name);
+    await db.from('accounts').update({ connections: otherConns }).eq('id', otherRes.data.id);
+  }
+  currentUser.connections = myConns;
+  renderConnectedList();
+  renderTransferSelects();
+}
+
+function renderTransferSelects() {
+  const conns = currentUser.connections || [];
+  const opts = !conns.length
+    ? '<option value="">— Keine Verbindungen —</option>'
+    : '<option value="">— Konto wählen —</option>' + conns.map(n=>`<option value="${n}">${n}</option>`).join('');
+  document.getElementById('transfer-to').innerHTML    = opts;
+  document.getElementById('payment-req-to').innerHTML = opts;
+}
+
+// ─── TRANSFER (OPTIMISTIC) ────────────────────────────────────────────────────
+async function sendMoney() {
+  const toName = document.getElementById('transfer-to').value;
+  const amount = parseFloat(document.getElementById('transfer-amount').value);
+  const note   = document.getElementById('transfer-note').value.trim();
+  if (!toName) return showStatus('transfer-status','Empfänger wählen!', false);
+  if (!amount || amount <= 0) return showStatus('transfer-status','Betrag eingeben!', false);
+  if (amount > currentUser.balance) return showStatus('transfer-status','Nicht genug Guthaben!', false);
+
+  const prevBalance = currentUser.balance;
+  currentUser.balance = Math.round((currentUser.balance - amount) * 100) / 100;
+  updateBalanceDisplay(currentUser.balance);
+  setBtnLoading('send-money-btn', true, '💸 Jetzt senden');
+
+  try {
+    const [selfRes, toRes] = await Promise.all([
+      db.from('accounts').select('balance').eq('id', currentUser.id).single(),
+      db.from('accounts').select('*').eq('name', toName).single()
+    ]);
+
+    if (!selfRes.data) throw new Error('Fehler beim Laden des Kontos!');
+    if (amount > selfRes.data.balance) throw new Error('Nicht genug Guthaben!');
+    if (!toRes.data) throw new Error('Empfänger nicht gefunden!');
+
+    const [e1] = await Promise.all([
+      db.from('accounts').update({ balance: selfRes.data.balance - amount }).eq('id', currentUser.id),
+      db.from('accounts').update({ balance: toRes.data.balance + amount }).eq('id', toRes.data.id),
+      db.from('transactions').insert({ from_user: currentUser.name, to_user: toName, amount, note })
+    ]);
+    if (e1.error) throw new Error(e1.error.message);
+
+    currentUser.balance = selfRes.data.balance - amount;
+    updateBalanceDisplay(currentUser.balance, false);
+
+    cache.tx = null;
+    showStatus('transfer-status', `✅ ${fmt(amount)} an ${toName} gesendet!`, true);
+    showNotif(`💸 ${fmt(amount)} an ${toName} gesendet`);
+    document.getElementById('transfer-amount').value = '';
+    document.getElementById('transfer-note').value   = '';
+    if (document.getElementById('tab-verlauf').style.display !== 'none') renderTxList();
+
+  } catch (err) {
+    currentUser.balance = prevBalance;
+    updateBalanceDisplay(prevBalance, false);
+    showStatus('transfer-status','❌ ' + err.message, false);
+  } finally {
+    setBtnLoading('send-money-btn', false, '💸 Jetzt senden');
+  }
+}
+
+// ─── TRANSACTIONS (CACHED) ────────────────────────────────────────────────────
+async function renderTxList() {
+  const list = document.getElementById('tx-list');
+
+  if (cache.tx && (now() - cache.txTs < cache.TTL_FAST)) {
+    list.innerHTML = cache.tx;
+    return;
+  }
+
+  if (!cache.tx) list.innerHTML = '<div class="skeleton" style="height:40px;margin-bottom:6px;"></div>'.repeat(5);
+
+  const { data: txs } = await db.from('transactions')
+    .select('*').or(`from_user.eq.${currentUser.name},to_user.eq.${currentUser.name}`)
+    .order('created_at', { ascending: false }).limit(40);
+
+  if (!txs || !txs.length) {
+    cache.tx = '<p style="font-size:0.75rem;color:rgba(245,230,200,0.3);">Noch keine Transaktionen.</p>';
+  } else {
+    cache.tx = txs.map(t => {
+      const out = t.from_user === currentUser.name;
+      const cls = out ? 'tx-minus' : 'tx-plus';
+      const who = out ? `→ ${t.to_user}` : `← ${t.from_user}`;
+      const ts  = new Date(t.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return `<div class="tx-item"><span>${who}${t.note?' · '+t.note:''}</span>
+        <span><span class="${cls}">${out?'-':'+'}${fmt(t.amount)}</span>
+        <span class="tx-time" style="margin-left:6px;">${ts}</span></span></div>`;
+    }).join('');
+  }
+  cache.txTs = now();
+  list.innerHTML = cache.tx;
+}
+
+// ─── CALCULATOR ───────────────────────────────────────────────────────────────
+function calcInput(v) {
+  if (calcExpr === '0' && v !== '.') calcExpr = v; else calcExpr += v;
+  document.getElementById('calc-display').textContent = calcExpr;
+}
+function calcEquals() {
+  try {
+    let r = Function('"use strict";return (' + calcExpr + ')')();
+    r = Math.round(r * 100) / 100; calcExpr = String(r); calcTotal = r;
+    document.getElementById('calc-display').textContent = fmt(r); updateCalcNote();
+  } catch { document.getElementById('calc-display').textContent = 'Fehler'; calcExpr = '0'; }
+}
+function clearCalc() {
+  calcExpr = '0'; calcTotal = 0; calcItems = [];
+  document.getElementById('calc-display').textContent = '0';
+  document.getElementById('item-list').innerHTML = '';
+  updateCalcNote();
+}
+function addArtikel() {
+  const name  = document.getElementById('artikel-name').value.trim();
+  const preis = parseFloat(document.getElementById('artikel-preis').value);
+  if (!name || !preis || preis <= 0) return;
+  calcItems.push({ name, preis });
+  calcTotal = Math.round(calcItems.reduce((s,i) => s+i.preis, 0)*100)/100;
+  calcExpr  = String(calcTotal);
+  document.getElementById('calc-display').textContent = fmt(calcTotal);
+  document.getElementById('artikel-name').value  = '';
+  document.getElementById('artikel-preis').value = '';
+  renderItemList(); updateCalcNote();
+}
+function removeItem(i) {
+  calcItems.splice(i,1);
+  calcTotal = Math.round(calcItems.reduce((s,it) => s+it.preis,0)*100)/100;
+  calcExpr  = String(calcTotal);
+  document.getElementById('calc-display').textContent = calcTotal > 0 ? fmt(calcTotal) : '0';
+  renderItemList(); updateCalcNote();
+}
+function renderItemList() {
+  const list = document.getElementById('item-list');
+  if (!calcItems.length) { list.innerHTML = ''; return; }
+  list.innerHTML = calcItems.map((it,i) => `
+    <div class="item-row"><span>${it.name}</span>
+    <span style="display:flex;align-items:center;gap:6px;"><span style="color:var(--gold);">${fmt(it.preis)}</span>
+    <button onclick="removeItem(${i})">✕</button></span></div>`).join('') +
+    `<div class="item-row" style="font-weight:700;"><span>GESAMT</span><span style="color:var(--gold);">${fmt(calcTotal)}</span></div>`;
+}
+function updateCalcNote() {
+  document.getElementById('calc-note-display').textContent = calcItems.length > 0
+    ? calcItems.map(i=>i.name).join(', ') + ' = ' + fmt(calcTotal)
+    : 'Artikel hinzufügen...';
+}
+
+// ─── PAYMENT REQUESTS ─────────────────────────────────────────────────────────
+async function sendPaymentRequest() {
+  const toName = document.getElementById('payment-req-to').value;
+  const amount = calcTotal || parseFloat(calcExpr) || 0;
+  if (!toName) return showStatus('payment-req-status','Empfänger wählen!', false);
+  if (!amount || amount <= 0) return showStatus('payment-req-status','Betrag berechnen!', false);
+  const { error } = await db.from('payment_requests').insert({
+    from_user: currentUser.name, to_user: toName, amount, items: calcItems, status: 'pending'
+  });
+  if (error) return showStatus('payment-req-status','Fehler: ' + error.message, false);
+  showStatus('payment-req-status', `✅ Anfrage über ${fmt(amount)} an ${toName} gesendet!`, true);
+  showNotif(`🧾 Zahlungsanfrage an ${toName} gesendet`);
+}
+
+function showPaymentModal(req) {
+  pendingReqId = req.id;
+  document.getElementById('modal-from-text').textContent = 'Von: ' + req.from_user;
+  document.getElementById('modal-amount').textContent    = fmt(req.amount);
+  const items = Array.isArray(req.items) ? req.items : [];
+  document.getElementById('modal-items-text').innerHTML = items.length > 0 ? items.map(i=>`${i.name}: ${fmt(i.preis)}`).join('<br>') : '';
+  document.getElementById('payment-modal').classList.add('show');
+  showNotif('🧾 Zahlungsanfrage von ' + req.from_user + '!');
+}
+
+async function acceptPaymentRequest() {
+  if (!pendingReqId) return;
+  const { data: req } = await db.from('payment_requests').select('*').eq('id', pendingReqId).single();
+  if (!req) return;
+  const { data: freshSelf } = await db.from('accounts').select('balance').eq('id', currentUser.id).single();
+  const balance = freshSelf ? freshSelf.balance : currentUser.balance;
+  if (balance < req.amount) {
+    const st = document.getElementById('modal-status');
+    st.textContent = 'Nicht genug Guthaben!'; st.className = 'status-msg show status-err'; return;
+  }
+
+  currentUser.balance = balance - req.amount;
+  updateBalanceDisplay(currentUser.balance);
+
+  const [fromRes] = await Promise.all([
+    db.from('accounts').select('*').eq('name', req.from_user).single(),
+    db.from('accounts').update({ balance: balance - req.amount }).eq('id', currentUser.id)
+  ]);
+  if (fromRes.data) {
+    await db.from('accounts').update({ balance: fromRes.data.balance + req.amount }).eq('id', fromRes.data.id);
+  }
+  await Promise.all([
+    db.from('transactions').insert({
+      from_user: currentUser.name, to_user: req.from_user, amount: req.amount,
+      note: 'Zahlung: ' + (Array.isArray(req.items) ? req.items.map(i=>i.name).join(', ') : '')
+    }),
+    db.from('payment_requests').update({ status: 'accepted' }).eq('id', pendingReqId)
+  ]);
+  cache.tx = null;
+  closePaymentModal();
+  showNotif('✅ ' + fmt(req.amount) + ' bezahlt!');
+  if (document.getElementById('tab-verlauf').style.display !== 'none') renderTxList();
+}
+
+async function declinePaymentRequest() {
+  if (pendingReqId) await db.from('payment_requests').update({ status: 'declined' }).eq('id', pendingReqId);
+  closePaymentModal();
+}
+
+function closePaymentModal() {
+  document.getElementById('payment-modal').classList.remove('show');
+  document.getElementById('modal-status').className = 'status-msg';
+  pendingReqId = null;
+}
+
+// ─── TAB NAV ──────────────────────────────────────────────────────────────────
+function showTab(name) {
+  ['verbinden','transfer','rechner','verlauf'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === name ? 'block' : 'none';
+    const btn = document.getElementById('nav-'+t);
+    if (btn) btn.classList.toggle('active', t === name);
+  });
+  if (name === 'verlauf') renderTxList();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.addEventListener('load', async () => {
+  try { await db.from('accounts').select('id').limit(1); } catch(e) {}
+  setLoading(false);
+  document.getElementById('screen-login').classList.add('active');
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && currentUser) checkPendingRequests();
+  });
+});
+
+async function checkPendingRequests() {
+  const { data } = await db.from('payment_requests')
+    .select('*').eq('to_user', currentUser.name).eq('status', 'pending')
+    .order('created_at', { ascending: false }).limit(1);
+  if (data && data.length > 0) showPaymentModal(data[0]);
+}
+</script>
+</body>
+</html>
